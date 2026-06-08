@@ -244,7 +244,13 @@ int main(){
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
 	
-	GLFWwindow* window=glfwCreateWindow(800,800,"Animación robot",NULL,NULL);
+	GLFWwindow* window=glfwCreateWindow(
+		1200,
+		800,
+		"F1 Simulator - 4 Cameras",
+		NULL,
+		NULL
+	);
 	if(!window){
 		std::cout << "Windows didn't charge" << std::endl;
 		glfwTerminate();
@@ -286,6 +292,10 @@ int main(){
 	float lastTime=glfwGetTime();
 	double fpsTime = 0.0;
 	int fpsFrames = 0;
+	
+	
+	float dist = 0.7f;
+	float altura = 0.5f;
 
 	while(!glfwWindowShouldClose(window)){
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -318,14 +328,130 @@ int main(){
 		
 		
 		// Para seguir
-		if (camMode == TARGETING) {
-			cam->UpdateCam(TARGETING, mundito->activeSceneNode->GetWorldPosition());
-		}
-		else {
-			cam->UpdateCam(FREE);
-		}
-        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 100.0f));
+		Point target = mundito->activeSceneNode->GetWorldPosition();
+
+		int windowWidth = 1200;
+		int windowHeight = 800;
+
+		int halfW = windowWidth / 2;
+		int halfH = windowHeight / 2;
+
+
+		Camera camFront(
+			{target.x, target.y + altura, target.z + dist},
+			target,
+			{0,1,0},
+			TARGETING
+		);
+
+		glViewport(0, halfH, halfW, halfH);
+
+		mundito->DrawShape(
+			camFront.GetLookAt(),
+			camFront.GetProjection(
+				(float)halfW,
+				(float)halfH,
+				0.1f,
+				100.0f
+			)
+		);
+
+		// CAMARA TRASERA
+
+		Camera camBack(
+			{target.x, target.y + altura, target.z - dist},
+			target,
+			{0,1,0},
+			TARGETING
+		);
+
+		glViewport(
+			halfW,
+			halfH,
+			halfW,
+			halfH
+		);
+
+		mundito->DrawShape(
+			camBack.GetLookAt(),
+			camBack.GetProjection(
+				(float)halfW,
+				(float)halfH,
+				0.1f,
+				100.0f
+			)
+		);
+
+
+		// CAMARA IZQUIERDA
+
+		Camera camLeft(
+			{target.x - dist, target.y + altura, target.z},
+			target,
+			{0,1,0},
+			TARGETING
+		);
+
+
+		glViewport(
+			0,
+			0,
+			halfW,
+			halfH
+		);
+
+		mundito->DrawShape(
+			camLeft.GetLookAt(),
+			camLeft.GetProjection(
+				(float)halfW,
+				(float)halfH,
+				0.1f,
+				100.0f
+			)
+		);	
+
+
+		// CAMARA DERECHA
+
+		Camera camRight(
+			{target.x + dist, target.y + altura, target.z},
+			target,
+			{0,1,0},
+			TARGETING
+		);
+
+		glViewport(
+			halfW,
+			0,
+			halfW,
+			halfH
+		);
+
+		mundito->DrawShape(
+			camRight.GetLookAt(),
+			camRight.GetProjection(
+				(float)halfW,
+				(float)halfH,
+				0.1f,
+				100.0f
+			)
+		);
 		
+		
+		glViewport(0, 0, windowWidth, windowHeight);
+
+		glEnable(GL_SCISSOR_TEST);
+
+		// línea vertical
+		glScissor(halfW - 1, 0, 2, windowHeight);
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// línea horizontal
+		glScissor(0, halfH - 1, windowWidth, 2);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glDisable(GL_SCISSOR_TEST);
 		glBindVertexArray(0);
 		
         glfwSwapBuffers(window);
