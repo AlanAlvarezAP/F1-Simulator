@@ -30,8 +30,9 @@ World* mundito=nullptr;
 GLuint VAO,VBO,EBO;
 unsigned int NUM_REBANADAS=4,SELECT_REBANDA=0;
 char CURRENT_AXIS = 'z';
-Cube* cube=nullptr;
-Sphere* sphere = nullptr;
+//Cube* cube=nullptr;
+//Sphere* sphere = nullptr;
+Chassis* car = nullptr;
 Camera* cam=nullptr;
 Animator* anim=nullptr;
 bool Target_free=false;
@@ -276,11 +277,13 @@ int main(){
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
 	
-	cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
+	//cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
 	//sphere=Builder::BuildSphereScene(mundito,0.5f);
+	car = Builder::BuildChassisScene(mundito, {0.0f,0.0f,0.0f}, 0.5f, 0.1f, 0.2f);
 	
 	// Ojo aca cambiar escena inicial :D
-	mundito->activeSceneNode= cube;
+	//mundito->activeSceneNode= cube;
+	mundito->activeSceneNode = car;
 
 	mundito->activeSceneNode->printMenu();
 	//general_Menu();
@@ -326,7 +329,7 @@ int main(){
 		glfwPollEvents();
 		anim->Execute_animations(dt);
 		
-		
+		/*
 		// Para seguir
 		Point target = mundito->activeSceneNode->GetWorldPosition();
 
@@ -335,7 +338,6 @@ int main(){
 
 		int halfW = windowWidth / 2;
 		int halfH = windowHeight / 2;
-
 
 		Camera camFront(
 			{target.x, target.y + altura, target.z + dist},
@@ -382,7 +384,6 @@ int main(){
 			)
 		);
 
-
 		// CAMARA IZQUIERDA
 
 		Camera camLeft(
@@ -391,7 +392,6 @@ int main(){
 			{0,1,0},
 			TARGETING
 		);
-
 
 		glViewport(
 			0,
@@ -409,7 +409,6 @@ int main(){
 				100.0f
 			)
 		);	
-
 
 		// CAMARA DERECHA
 
@@ -437,7 +436,6 @@ int main(){
 			)
 		);
 		
-		
 		glViewport(0, 0, windowWidth, windowHeight);
 
 		glEnable(GL_SCISSOR_TEST);
@@ -452,8 +450,10 @@ int main(){
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glDisable(GL_SCISSOR_TEST);
+		*/
+        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 100.0f));
+
 		glBindVertexArray(0);
-		
         glfwSwapBuffers(window);
         
     }
