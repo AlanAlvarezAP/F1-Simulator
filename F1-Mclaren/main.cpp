@@ -311,9 +311,35 @@ int main(){
 	double fpsTime = 0.0;
 	int fpsFrames = 0;
 	
-	
 	float dist = 0.7f;
 	float altura = 0.5f;
+
+	// car variables
+	// balancing
+	float currentPitch = 0.0f;
+	float previousPitch = 0.0f;
+	float pitchSpring = 5.0f; // to stabilize
+    float visualBalancingFactor = 2.0f; // balancing effect
+	float instantAcceleration;
+    float targetPitch; // + or -
+    float limitPitch = 30.0f;
+	// rolling
+	float currentRoll = 0.0f;
+	float previousRoll = 0.0f;
+	float rollSpring = 5.0f;
+	float visualRollingFactor = -0.5f;
+	float targetRoll; // + or -
+	float limitRoll = 2.5f;
+	// movement
+	bool inputForward, inputBackward; // key detector
+	float steerSpeed = 75.0f;
+	float currentSpeed = 0.0f;
+	float previousSpeed;
+	float brakeSpeed = 2.5f;
+	const float maxSpeed = 5.0f;
+	const float maxReverse = -3.0f;
+	const float acceleration = 0.5f;
+	const float deceleration = 0.2f;
 
 	while(!glfwWindowShouldClose(window)){
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -336,15 +362,92 @@ int main(){
 			fpsTime = 0.0;
 		}
 
+		// --------------------------------------------------------
 		// car controls
-		if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
-            car->moveForward(0.0015f);
-        if (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
-            car->moveBackward(0.0015f);
+		inputForward = (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS);
+		inputBackward = (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS);
+
+		previousSpeed = currentSpeed;
+		// brake
+		if (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS) {
+			if (currentSpeed > 0.0f) {
+				currentSpeed -= brakeSpeed * dt;
+				if (currentSpeed < 0.0f)
+					currentSpeed = 0.0f;
+			} else if (currentSpeed < 0.0f) {
+				currentSpeed += brakeSpeed * dt;
+				if (currentSpeed > 0.0f)
+					currentSpeed = 0.0f;
+			}
+		}
+		// acceleration
+		if (inputForward) {
+			currentSpeed += acceleration * dt;
+			if (currentSpeed > maxSpeed)
+				currentSpeed = maxSpeed;
+		} else if (inputBackward) {
+			currentSpeed -= acceleration * dt;
+			if (currentSpeed < maxReverse)
+				currentSpeed = maxReverse;
+		} else {
+			// friction
+			if (currentSpeed > 0.0f) {
+				currentSpeed -= deceleration * dt;
+				if (currentSpeed < 0.0f)
+					currentSpeed = 0.0f; // avoid reverse mov
+			} else if (currentSpeed < 0.0f) {
+				currentSpeed += deceleration * dt;
+				if (currentSpeed > 0.0f)
+					currentSpeed = 0.0f;
+			}
+		}
+		/*
+		// rolling out
+		if (std::abs(previousRoll) > 0.001f)
+        	car->Mat.UpdateView('f', previousRoll, 0.0f, 0.0f, 'x', 'L');
+		// balancing out
+		if (std::abs(previousPitch) > 0.001f)
+        	car->Mat.UpdateView('f', previousPitch, 0.0f, 0.0f, 'z', 'L'); 
+		*/
+		// movement
+		if (std::abs(currentSpeed) > 0.001f) {
+			if (currentSpeed > 0.0f)
+				car->moveForward(currentSpeed * dt);
+			else
+				car->moveBackward(-currentSpeed * dt); // - * - = +
+		}
+		// balancing
+		instantAcceleration = (currentSpeed - previousSpeed) / dt; // for rolling too
+		targetPitch = instantAcceleration * visualBalancingFactor;
+		// max balance degree
+		if (targetPitch > limitPitch)
+			targetPitch = limitPitch;
+    	if (targetPitch < -limitPitch)
+			targetPitch = -limitPitch;
+		// soft balance effect
+		currentPitch += (targetPitch - currentPitch) * pitchSpring * dt;
+		// rolling
+		targetRoll = currentSpeed * car->steeringAngle * visualRollingFactor;
+		// max roll degree
+		if (targetRoll > limitRoll) 
+			targetRoll = limitRoll;
+    	if (targetRoll < -limitRoll)
+			targetRoll = -limitRoll;
+		// soft roll effect
+		currentRoll += (targetRoll - currentRoll) * rollSpring * dt;
+		// aply balancing
+		car->bodyPitch = currentPitch;
+		// aply rolling
+		car->bodyRoll = currentRoll;
+		// save for next frame
+		previousPitch = currentPitch;
+		previousRoll = currentRoll;
+		// steering
         if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
-            car->steerLeft(0.05f);
+            car->steerLeft(steerSpeed * dt);
         if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
-            car->steerRight(0.05f);
+            car->steerRight(steerSpeed * dt);
+		// --------------------------------------------------------
 		
 		glBindVertexArray(VAO);
 		glPointSize(4.0f);

@@ -37,6 +37,8 @@ public:
     Tire* s_w;
 	float steeringAngle = 0.0f; // steering wheel angle
     float rollAngle = 0.0f; // cumulated tire angle
+	float bodyPitch = 0.0f;
+    float bodyRoll = 0.0f;
 public:
 	Chassis(
 		World* world, const Point& cent, float sx, float sy, float sz,

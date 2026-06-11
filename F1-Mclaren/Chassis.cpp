@@ -73,7 +73,8 @@ void Chassis::updateWheels() {
     float sw_offsetY = sy + 0.05f;
     s_w->Mat.Restart_Identity(s_w->Mat.matrix);
     s_w->Mat.UpdateView('a', center.x + sw_offsetX, center.y + sw_offsetY, center.z, 'z', 'L');
-    s_w->Mat.UpdateView('d', steeringAngle * 2.0f, 0.0f, 0.0f, 'z', 'L'); 
+    s_w->Mat.UpdateView('d', 90.0f, 0.0f, 0.0f, 'x', 'L');
+    s_w->Mat.UpdateView('f', steeringAngle * 2.0f, 0.0f, 0.0f, 'z', 'L'); 
 }
 
 Chassis::Chassis(World* world, const Point& cent, float sx, float sy, float sz, std::vector<RGB> colors, int tp, std::string name) :
@@ -99,7 +100,7 @@ Chassis::Chassis(World* world, const Point& cent, float sx, float sy, float sz, 
         t_rl->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z + offsetZ, 'z', 'L');
         t_rr->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z - offsetZ, 'z', 'L');
         s_w->Mat.UpdateView('a', center.x + sw_offsetX, center.y + sw_offsetY, center.z, 'z', 'L');
-        //s_w->Mat.UpdateView('d', 90.0f, 'z', 'L');
+        s_w->Mat.UpdateView('d', 90.0f, 0.0f, 0.0f, 'x', 'L');
 
         this->AddChildren(t_fl);
         this->AddChildren(t_fr);
@@ -176,8 +177,15 @@ void Chassis::Generate(){
 
 void Chassis::DrawGeometry(const Matrix& parent)
 {
-    Shader.use();
-    Shader.SetMatrix(parent);
+    Matrix visualMat = parent;
+
+    if (std::abs(bodyRoll) > 0.001f)
+        visualMat.UpdateView('d', bodyRoll, 0.0f, 0.0f, 'x', 'L');
+    if (std::abs(bodyPitch) > 0.001f)
+        visualMat.UpdateView('d', bodyPitch, 0.0f, 0.0f, 'z', 'L');
+
+    this->Shader.use();
+    this->Shader.SetMatrix(visualMat);
 
     for(int i=0;i<6;i++){
         Face& f = faces[i];
