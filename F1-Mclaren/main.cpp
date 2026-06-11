@@ -34,6 +34,7 @@ Cube* cube=nullptr;
 Sphere* sphere = nullptr;
 Camera* cam=nullptr;
 Animator* anim=nullptr;
+Car* carro=nullptr;
 bool Target_free=false;
 float dt=0.0f,lastX=0.0f,lastY=0.0f;
 
@@ -100,6 +101,7 @@ void general_Menu(){
 	std::cout << "|  I. Camara adelante             |" << std::endl;
 	std::cout << "|  K. Camara atras                |" << std::endl;
 	std::cout << "|  L. Camara derecha              |" << std::endl;
+	std::cout << "|  Q. Orbitar                     |" << std::endl;
     std::cout << "|  ESC/CTRL+C. Salir              |" << std::endl;
     std::cout << "===================================" << std::endl;
 }
@@ -227,6 +229,10 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 			}
 			break;
 		}
+		case GLFW_KEY_Q: {
+			orbit();
+			break;
+		}
 		default:{
 			break;
 		}
@@ -276,11 +282,12 @@ int main(){
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
 	
-	cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
+	//cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
 	//sphere=Builder::BuildSphereScene(mundito,0.5f);
+	carro=Builder::BuildCarScene(mundito);
 	
 	// Ojo aca cambiar escena inicial :D
-	mundito->activeSceneNode= cube;
+	mundito->activeSceneNode= carro;
 
 	mundito->activeSceneNode->printMenu();
 	//general_Menu();
@@ -288,6 +295,8 @@ int main(){
 	set_Vs();
 	mundito->print(mundito->root);
 	glEnable(GL_DEPTH_TEST);
+	// Para WIREFRAME
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	
 	float lastTime=glfwGetTime();
 	double fpsTime = 0.0;
@@ -328,130 +337,14 @@ int main(){
 		
 		
 		// Para seguir
-		Point target = mundito->activeSceneNode->GetWorldPosition();
-
-		int windowWidth = 1200;
-		int windowHeight = 800;
-
-		int halfW = windowWidth / 2;
-		int halfH = windowHeight / 2;
-
-
-		Camera camFront(
-			{target.x, target.y + altura, target.z + dist},
-			target,
-			{0,1,0},
-			TARGETING
-		);
-
-		glViewport(0, halfH, halfW, halfH);
-
-		mundito->DrawShape(
-			camFront.GetLookAt(),
-			camFront.GetProjection(
-				(float)halfW,
-				(float)halfH,
-				0.1f,
-				100.0f
-			)
-		);
-
-		// CAMARA TRASERA
-
-		Camera camBack(
-			{target.x, target.y + altura, target.z - dist},
-			target,
-			{0,1,0},
-			TARGETING
-		);
-
-		glViewport(
-			halfW,
-			halfH,
-			halfW,
-			halfH
-		);
-
-		mundito->DrawShape(
-			camBack.GetLookAt(),
-			camBack.GetProjection(
-				(float)halfW,
-				(float)halfH,
-				0.1f,
-				100.0f
-			)
-		);
-
-
-		// CAMARA IZQUIERDA
-
-		Camera camLeft(
-			{target.x - dist, target.y + altura, target.z},
-			target,
-			{0,1,0},
-			TARGETING
-		);
-
-
-		glViewport(
-			0,
-			0,
-			halfW,
-			halfH
-		);
-
-		mundito->DrawShape(
-			camLeft.GetLookAt(),
-			camLeft.GetProjection(
-				(float)halfW,
-				(float)halfH,
-				0.1f,
-				100.0f
-			)
-		);	
-
-
-		// CAMARA DERECHA
-
-		Camera camRight(
-			{target.x + dist, target.y + altura, target.z},
-			target,
-			{0,1,0},
-			TARGETING
-		);
-
-		glViewport(
-			halfW,
-			0,
-			halfW,
-			halfH
-		);
-
-		mundito->DrawShape(
-			camRight.GetLookAt(),
-			camRight.GetProjection(
-				(float)halfW,
-				(float)halfH,
-				0.1f,
-				100.0f
-			)
-		);
+		if (camMode == TARGETING) {
+			cam->UpdateCam(TARGETING, mundito->activeSceneNode->GetWorldPosition());
+		}
+		else {
+			cam->UpdateCam(FREE);
+		}
+        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 100.0f));
 		
-		
-		glViewport(0, 0, windowWidth, windowHeight);
-
-		glEnable(GL_SCISSOR_TEST);
-
-		// línea vertical
-		glScissor(halfW - 1, 0, 2, windowHeight);
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// línea horizontal
-		glScissor(0, halfH - 1, windowWidth, 2);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glDisable(GL_SCISSOR_TEST);
 		glBindVertexArray(0);
 		
         glfwSwapBuffers(window);

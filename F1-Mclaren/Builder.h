@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cube.h"
+#include "Car.h"
 #include "Sphere.h"
 #include "Colors.h"
 #include "Camera.h"
@@ -27,6 +28,16 @@ public:
 
 		std::cout << "GEN SPHERE" << std::endl;
         return s;
+    }
+	
+	static Car* BuildCarScene(World* &mundito) {
+		const char* path = "F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/models/F1-Car.obj";
+        Car* car = new Car(mundito, path);
+        mundito->root->AddChildren(car);
+        car->Generate();
+
+		std::cout << "GEN F1-Mclaren :DDDDD" << std::endl;
+        return car;
     }
 	
 	static Camera* BuildCamera(){

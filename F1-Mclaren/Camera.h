@@ -39,7 +39,7 @@ public:
 	float mov_speed,mouse_sensi,fov;
 	
 public:
-	Camera(const Point &pos = {0.0f,0.0f,2.0f},const Point& target ={0.0f,0.0f,0.0f},const Point& wUP={0.0f,1.0f,0.0f},Camera_Status stat=TARGETING);
+	Camera(const Point &pos = {0.0f,0.0f,4.0f},const Point& target ={0.0f,0.0f,0.0f},const Point& wUP={0.0f,1.0f,0.0f},Camera_Status stat=TARGETING);
 	
 	float Normalize(const Point& val1) const;
 	float dot(const Point& a, const Point& b);
