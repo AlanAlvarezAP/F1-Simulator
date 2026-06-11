@@ -1,43 +1,22 @@
 #pragma once
 
-#include "Cube.h"
-#include "Car.h"
-#include "Sphere.h"
+#include "Chassis.h"
+#include "Tire.h"
 #include "Colors.h"
 #include "Camera.h"
 
 class Builder{
 public:
-	static Cube* BuildCubeScene(World* &mundito, const Point& center = {0.0f, 0.0f, 0.0f}) {
 
-        Cube* cube = new Cube(mundito, center,{ColorTable[NEGRO],ColorTable[VERDE],ColorTable[BLANCO],ColorTable[NEGRO],ColorTable[NARANJA],ColorTable[NEGRO]});
-        mundito->root->AddChildren(cube);
-        cube->Generate();
+	static Chassis* BuildChassisScene(World* &mundito, const Point& center = {0.0f, 0.0f, 0.0f}, const float sx = 0.5f, const float sy = 0.1f, const float sz = 0.2f) {
 
-        std::cout << "GEN CUBE" << std::endl;
+        Chassis* chassis = new Chassis(mundito, center, sx, sy, sz);
+        mundito->root->AddChildren(chassis);
+        chassis->Generate();
+		
+        std::cout << "GEN TEST CAR" << std::endl;
 
-        return cube;
-    }
-	
-	static Sphere* BuildSphereScene(World* &mundito, float radius) {
-
-        Point centro = {0.0f, 0.0f, 0.0f};
-        Sphere* s = new Sphere(mundito, centro, radius, 18, 18);
-        mundito->root->AddChildren(s);
-        s->Generate();
-
-		std::cout << "GEN SPHERE" << std::endl;
-        return s;
-    }
-	
-	static Car* BuildCarScene(World* &mundito) {
-		const char* path = "F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/models/F1-Car.obj";
-        Car* car = new Car(mundito, path);
-        mundito->root->AddChildren(car);
-        car->Generate();
-
-		std::cout << "GEN F1-Mclaren :DDDDD" << std::endl;
-        return car;
+        return chassis;
     }
 	
 	static Camera* BuildCamera(){

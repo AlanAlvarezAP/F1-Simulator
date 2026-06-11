@@ -14,12 +14,9 @@
 #include <chrono>
 #include <utility>
 #include <iomanip>
-#include <fstream>
-#include <ctype.h>
 
 // Para facilitarme la creación de puntos xd
-class Point{
-public:
+struct Point{
 	float x,y,z,angle;
 	
 	Point operator+(const Point& other) const{

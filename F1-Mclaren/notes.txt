@@ -1,0 +1,14 @@
+distance = angle * radio (in tires)
+
+vf = vi + aceleration * dt -> v stand for current velocity
+
+instant accel = (actual velocity - previous velocity) / dt
+
+centrifugal force = velocity * SW angle
+
+spring simulator ->
+current place = current place + (objetive - actual) * factor * dt
+current - for pitch or roll
+objetive - to where must move the object - inercy
+( - ) - simulate tension - bigger stronger - smaller weaker - (aproximation speed)
+factor - like spring - higher rigid - lower soft
