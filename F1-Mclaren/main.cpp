@@ -30,8 +30,6 @@ World* mundito=nullptr;
 GLuint VAO,VBO,EBO;
 unsigned int NUM_REBANADAS=4,SELECT_REBANDA=0;
 char CURRENT_AXIS = 'z';
-//Cube* cube=nullptr;
-//Sphere* sphere = nullptr;
 Chassis* car = nullptr;
 Camera* cam=nullptr;
 Animator* anim=nullptr;
@@ -154,17 +152,15 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 }
 
 void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
-	if(action != GLFW_PRESS){
+	if(action != GLFW_PRESS && action != GLFW_REPEAT)
 		return;
-	}
-	
+
 	switch(key){
 		case GLFW_KEY_ESCAPE:{
 			// std::cout << "ESC presionado saliendo..." << std::endl;
 			glfwSetWindowShouldClose(window,GLFW_TRUE);
 			break;
 		}
-		
 		case GLFW_KEY_C:{
 			if(mods & GLFW_MOD_CONTROL){
 				std::cout << "CTRL+C presionado saliendo..." << std::endl;
@@ -172,8 +168,30 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 			}
 			break;
 		}
-		
-		
+		// car controls start
+		/*
+		case GLFW_KEY_KP_8:{
+			if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                car->moveForward(0.05f);
+            break;
+		}
+		case GLFW_KEY_KP_2:{
+			if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                car->moveBackward(0.05f);
+            break;
+		}
+		case GLFW_KEY_KP_4:{
+			if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                car->steerLeft(1.5f);
+            break;
+		}
+		case GLFW_KEY_KP_6:{
+			if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                car->steerRight(1.5f);
+            break;
+		}
+		*/
+		// car controls end
 		case GLFW_KEY_X:{
 			CURRENT_AXIS='x';
 			std::cout << "Eje actual: X" << std::endl;
@@ -277,12 +295,9 @@ int main(){
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
 	
-	//cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
-	//sphere=Builder::BuildSphereScene(mundito,0.5f);
 	car = Builder::BuildChassisScene(mundito, {0.0f,0.0f,0.0f}, 0.5f, 0.1f, 0.2f);
 	
 	// Ojo aca cambiar escena inicial :D
-	//mundito->activeSceneNode= cube;
 	mundito->activeSceneNode = car;
 
 	mundito->activeSceneNode->printMenu();
@@ -314,21 +329,30 @@ int main(){
 		if (fpsTime >= 1.0) {
 			double fps = fpsFrames / fpsTime;
 
-			std::string title = "Cubo OpenGL - FPS: " + std::to_string((int)fps);
+			std::string title = "CAR OpenGL - FPS: " + std::to_string((int)fps);
 			glfwSetWindowTitle(window, title.c_str());
 
 			fpsFrames = 0;
 			fpsTime = 0.0;
 		}
+
+		// car controls
+		if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
+            car->moveForward(0.0015f);
+        if (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS)
+            car->moveBackward(0.0015f);
+        if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
+            car->steerLeft(0.05f);
+        if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
+            car->steerRight(0.05f);
 		
 		glBindVertexArray(VAO);
 		glPointSize(4.0f);
 		glLineWidth(4.0f);
-		
-		
+				
 		glfwPollEvents();
 		anim->Execute_animations(dt);
-		
+
 		/*
 		// Para seguir
 		Point target = mundito->activeSceneNode->GetWorldPosition();

@@ -6,9 +6,107 @@
 
 Face::Face():triangle_start(0), lines_Start(0), points_Start(0) {}
 
+void Chassis::moveForward(float step) {
+    // tires turned - car rotate Y local
+    if (std::abs(steeringAngle) > 0.01f) {
+        float turn_factor = 0.4f; // turned factor
+        float chassis_turn = step * steeringAngle * turn_factor;
+        this->Mat.UpdateView('d', chassis_turn, 0.0f, 0.0f, 'y', 'L');
+    }
+    this->Mat.UpdateView('a', step, 0.0f, 0.0f, 'z', 'L');
+    // tire rolling
+    rollAngle += (step / W_RADIUS) * (180.0f / M_PI);
+    updateWheels();
+}
+
+void Chassis::moveBackward(float step) {
+    if (std::abs(steeringAngle) > 0.01f) {
+        float turn_factor = 0.4f; // turned factor
+        float chassis_turn = step * steeringAngle * turn_factor;
+        this->Mat.UpdateView('f', chassis_turn, 0.0f, 0.0f, 'y', 'L');
+    }
+    this->Mat.UpdateView('s', step, 0.0f, 0.0f, 'z', 'L');
+    rollAngle += (step / W_RADIUS) * (180.0f / M_PI);
+    updateWheels();
+}
+
+void Chassis::steerLeft(float degrees) {
+    steeringAngle += degrees;
+    if (steeringAngle > 45.0f)
+        steeringAngle = 45.0f; // limit
+    updateWheels();
+}
+
+void Chassis::steerRight(float degrees) {
+    steeringAngle -= degrees;
+    if (steeringAngle < -45.0f)
+        steeringAngle = -45.0f;
+    updateWheels();
+}
+
+void Chassis::updateWheels() {
+    float offsetX = sx * 0.75f;
+    float offsetY = -sy;
+    float offsetZ = sz + (W_HEIGHT / 2.0f);
+
+    // front tires rotate & spin - back tires rotate
+    t_fl->Mat.Restart_Identity(t_fl->Mat.matrix);
+    t_fl->Mat.UpdateView('a', center.x + offsetX, center.y + offsetY, center.z + offsetZ, 'z', 'L');
+    t_fl->Mat.UpdateView('d', steeringAngle, 0.0f, 0.0f, 'y', 'L');
+    t_fl->Mat.UpdateView('d', rollAngle, 0.0f, 0.0f, 'z', 'L');
+
+    t_fr->Mat.Restart_Identity(t_fr->Mat.matrix);
+    t_fr->Mat.UpdateView('a', center.x + offsetX, center.y + offsetY, center.z - offsetZ, 'z', 'L');
+    t_fr->Mat.UpdateView('d', steeringAngle, 0.0f, 0.0f, 'y', 'L');
+    t_fr->Mat.UpdateView('d', rollAngle, 0.0f, 0.0f, 'z', 'L');
+
+    t_rl->Mat.Restart_Identity(t_rl->Mat.matrix);
+    t_rl->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z + offsetZ, 'z', 'L');
+    t_rl->Mat.UpdateView('d', rollAngle, 0.0f, 0.0f, 'z', 'L');
+
+    t_rr->Mat.Restart_Identity(t_rr->Mat.matrix);
+    t_rr->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z - offsetZ, 'z', 'L');
+    t_rr->Mat.UpdateView('d', rollAngle, 0.0f, 0.0f, 'z', 'L');
+
+    // steering wheel - x2 faster
+    float sw_offsetX = sx * 0.6f;
+    float sw_offsetY = sy + 0.05f;
+    s_w->Mat.Restart_Identity(s_w->Mat.matrix);
+    s_w->Mat.UpdateView('a', center.x + sw_offsetX, center.y + sw_offsetY, center.z, 'z', 'L');
+    s_w->Mat.UpdateView('d', steeringAngle * 2.0f, 0.0f, 0.0f, 'z', 'L'); 
+}
 
 Chassis::Chassis(World* world, const Point& cent, float sx, float sy, float sz, std::vector<RGB> colors, int tp, std::string name) :
-	ShapeNode(world, 0, name), center(cent), sx(sx), sy(sy), sz(sz), sector_Start(0), lines_Start(0), points_Start(0), type(tp),faceColors(colors) {}
+	ShapeNode(world, 0, name), center(cent), sx(sx), sy(sy), sz(sz), sector_Start(0), lines_Start(0), points_Start(0), type(tp),faceColors(colors) {
+        float offsetX = sx * 0.75f;
+        float offsetY = -sy;
+        float offsetZ = sz + (W_HEIGHT/ 2.0f);
+
+        t_fl = new Tire(world, {0.0f, 0.0f, 0.0f}, W_RADIUS, W_HEIGHT, 16, ColorTable[NEGRO], 0, "Tire DI");
+        t_fr = new Tire(world, {0.0f, 0.0f, 0.0f}, W_RADIUS, W_HEIGHT, 16, ColorTable[NEGRO], 0, "Tire DD");
+        t_rl = new Tire(world, {0.0f, 0.0f, 0.0f}, W_RADIUS, W_HEIGHT, 16, ColorTable[NEGRO], 0, "Tire TI");
+        t_rr = new Tire(world, {0.0f, 0.0f, 0.0f}, W_RADIUS, W_HEIGHT, 16, ColorTable[NEGRO], 0, "Tire TD");
+
+        float sw_offsetX = sx * 0.6f;
+        float sw_offsetY = sy + 0.05f;
+        float sw_radius = 0.1f;
+        float sw_height = 0.05f;
+
+        s_w = new Tire(world, {0.0f, 0.0f, 0.0f}, sw_radius, sw_height, 8, ColorTable[CAFE], 0, "Steering wheel");
+
+        t_fl->Mat.UpdateView('a', center.x + offsetX, center.y + offsetY, center.z + offsetZ, 'z', 'L');
+        t_fr->Mat.UpdateView('a', center.x + offsetX, center.y + offsetY, center.z - offsetZ, 'z', 'L');
+        t_rl->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z + offsetZ, 'z', 'L');
+        t_rr->Mat.UpdateView('a', center.x - offsetX, center.y + offsetY, center.z - offsetZ, 'z', 'L');
+        s_w->Mat.UpdateView('a', center.x + sw_offsetX, center.y + sw_offsetY, center.z, 'z', 'L');
+        //s_w->Mat.UpdateView('d', 90.0f, 'z', 'L');
+
+        this->AddChildren(t_fl);
+        this->AddChildren(t_fr);
+        this->AddChildren(t_rl);
+        this->AddChildren(t_rr);
+        this->AddChildren(s_w);
+    }
 
 void Chassis::Generate(){
     //float s = 0.2f;
@@ -66,8 +164,14 @@ void Chassis::Generate(){
         base += 4;
     }
 
-    EBOs_range =world->Add_Batch(vertices,indices,offset);
+    EBOs_range = world->Add_Batch(vertices,indices,offset);
     IsDrawable = true;
+
+    t_fl->Generate();
+    t_fr->Generate();
+    t_rl->Generate();
+    t_rr->Generate();
+    s_w->Generate();
 }
 
 void Chassis::DrawGeometry(const Matrix& parent)

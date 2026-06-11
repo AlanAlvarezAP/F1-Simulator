@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Shape.h"
+#include "Tire.h"
+
+#define W_RADIUS 0.15f
+#define W_HEIGHT 0.1f
 
 class Face {
 public:
@@ -26,6 +30,13 @@ public:
 	Face faces[6];
 	std::vector<RGB> faceColors;
 	int type;
+	Tire* t_fl;
+    Tire* t_fr;
+    Tire* t_rl;
+    Tire* t_rr;
+    Tire* s_w;
+	float steeringAngle = 0.0f; // steering wheel angle
+    float rollAngle = 0.0f; // cumulated tire angle
 public:
 	Chassis(
 		World* world, const Point& cent, float sx, float sy, float sz,
@@ -36,4 +47,9 @@ public:
 	void DrawGeometry(const Matrix& parent) override;
 	void printMenu() override;
 	void handleKey(int key, int mods,char CURRENT_AXIS) override;
+	void moveForward(float step);
+    void moveBackward(float step);
+	void steerLeft(float degrees);
+    void steerRight(float degrees);
+    void updateWheels();
 };

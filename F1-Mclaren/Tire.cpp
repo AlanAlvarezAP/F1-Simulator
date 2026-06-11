@@ -18,18 +18,16 @@ void Tire::Generate() {
     vertices.insert(vertices.end(), {center.x, center.y, center.z + height / 2.0f});
     vertices.insert(vertices.end(), {center.x, center.y, center.z - height / 2.0f});
 
-    float PI = 3.14159265359f;
-    
     // superior perimeter
     for (int i = 0; i < segments; i++) {
-        float theta = 2.0f * PI * float(i) / float(segments);
+        float theta = 2.0f * M_PI * float(i) / float(segments);
         float px = center.x + radius * cos(theta);
         float py = center.y + radius * sin(theta);
         vertices.insert(vertices.end(), {px, py, center.z + height / 2.0f});
     }
     // inferior perimeter
     for (int i = 0; i < segments; i++) {
-        float theta = 2.0f * PI * float(i) / float(segments);
+        float theta = 2.0f * M_PI * float(i) / float(segments);
         float px = center.x + radius * cos(theta);
         float py = center.y + radius * sin(theta);
         vertices.insert(vertices.end(), {px, py, center.z - height / 2.0f});
@@ -84,7 +82,7 @@ void Tire::DrawGeometry(const Matrix& parent) {
     glDrawElements(GL_TRIANGLES, triangle_count, GL_UNSIGNED_INT, (void*)((offset + triangle_start) * sizeof(unsigned int)));
     // borders
     Shader.SetColor(0.2f, 0.2f, 0.2f); 
-    //glDrawElements(GL_LINES, lines_count, GL_UNSIGNED_INT, (void*)((offset + lines_start) * sizeof(unsigned int)));
+    glDrawElements(GL_LINES, lines_count, GL_UNSIGNED_INT, (void*)((offset + lines_start) * sizeof(unsigned int)));
 }
 
 void Tire::handleKey(int key, int mods, char CURRENT_AXIS) {
