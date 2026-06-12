@@ -31,7 +31,7 @@ public:
     }
 	
 	static Car* BuildCarScene(World* &mundito) {
-		const char* path = "F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/models/F1-Car.obj";
+		const char* path = "F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/models/F1-Mclaren_3.obj";
         Car* car = new Car(mundito, path);
         mundito->root->AddChildren(car);
         car->Generate();

@@ -9,6 +9,7 @@
 #include <stack>
 #include <cmath>
 #include <random>
+#include <unordered_set>
 #include <algorithm>
 #include <thread>
 #include <chrono>

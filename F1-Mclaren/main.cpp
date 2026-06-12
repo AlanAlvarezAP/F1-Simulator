@@ -119,12 +119,14 @@ void set_Vs(){
 	glBindBuffer(GL_ARRAY_BUFFER,VBO);
 	glBufferData(GL_ARRAY_BUFFER,mundito->all_vertices.size()*sizeof(float),mundito->all_vertices.data(),GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),(void*)0);
+	glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)0);
+	glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)(3*sizeof(float)));
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,mundito->all_EBOs.size()*sizeof(unsigned int),mundito->all_EBOs.data(),GL_DYNAMIC_DRAW);
 	
 	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	
 	glBindVertexArray(0);
 	
@@ -296,7 +298,7 @@ int main(){
 	mundito->print(mundito->root);
 	glEnable(GL_DEPTH_TEST);
 	// Para WIREFRAME
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	
 	float lastTime=glfwGetTime();
 	double fpsTime = 0.0;

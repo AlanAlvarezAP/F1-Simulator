@@ -5,7 +5,7 @@
 #include <GLFW/glfw3.h>
 
 
-Llanta::Llanta(World* world,std::string nombre):ShapeNode(world,0,nombre){}
+Llanta::Llanta(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
 
 void Llanta::Generate(){
     IsDrawable = true;
@@ -14,14 +14,15 @@ void Llanta::Generate(){
 void Llanta::DrawGeometry(const Matrix& parent){
     Shader.use();
     Shader.SetMatrix(parent);
+	Shader.SetTexture();
 
-    Shader.SetColor(0.7f, 0.7f, 0.7f);
+    Shader.SetColor(1.0f, 1.0f, 1.0f);
 
-    glDrawElements(GL_TRIANGLES,EBOs_range.size(),GL_UNSIGNED_INT,(void*)(offset * sizeof(unsigned int)));
+	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
 }
 
 
-Timon::Timon(World* world,std::string nombre):ShapeNode(world,0,nombre){}
+Timon::Timon(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
 
 void Timon::Generate(){
     IsDrawable = true;
@@ -30,13 +31,14 @@ void Timon::Generate(){
 void Timon::DrawGeometry(const Matrix& parent){
     Shader.use();
     Shader.SetMatrix(parent);
+	Shader.SetTexture();
 
-    Shader.SetColor(0.7f, 0.7f, 0.7f);
+    Shader.SetColor(1.0f, 1.0f, 1.0f);
 
-    glDrawElements(GL_TRIANGLES,EBOs_range.size(),GL_UNSIGNED_INT,(void*)(offset * sizeof(unsigned int)));
+	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
 }
 
-Chassis::Chassis(World* world,std::string nombre):ShapeNode(world,0,nombre){}
+Chassis::Chassis(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
 void Chassis::Generate(){
     IsDrawable = true;
 }
@@ -44,12 +46,11 @@ void Chassis::Generate(){
 void Chassis::DrawGeometry(const Matrix& parent){
     Shader.use();
     Shader.SetMatrix(parent);
+	Shader.SetTexture();
 
-    Shader.SetColor(0.7f, 0.7f, 0.7f);
+    Shader.SetColor(1.0f, 1.0f, 1.0f);
 
-    glDrawElements(
-        GL_TRIANGLES,
-        EBOs_range.size(),GL_UNSIGNED_INT,(void*)(offset * sizeof(unsigned int)));
+	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
 }
 
 Car::Car(World* world, const char* file_path):ShapeNode(world, 0, "McLaren"), file(file_path) {}
@@ -106,14 +107,59 @@ Point Car::Optimize_Parser_Numeric(const std::string &line,const int offset){
 	return tmp;
 }
 
-std::vector<unsigned int> Car::Obtained_EBos(const std::vector<FaceVertex>& faces,unsigned int base){
+
+std::vector<unsigned int> Car::Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces){
     std::vector<unsigned int> indices;
     indices.reserve(faces.size() * 3);
 
     for(size_t i = 0; i < faces.size(); i++){
-        indices.push_back(faces[i].first.v  + base);
-        indices.push_back(faces[i].second.v + base);
-        indices.push_back(faces[i].third.v  + base);
+		unsigned int idx= send.size()/5;
+		auto face = faces[i];
+		
+		auto it = check_repeat.find(face.first);
+		if(it == check_repeat.end()){
+			check_repeat[face.first]=idx;
+			send.push_back(vertices[face.first.v*3]);
+			send.push_back(vertices[face.first.v*3+1]);
+			send.push_back(vertices[face.first.v*3+2]);
+			
+			send.push_back(UVs[face.first.vt*2]);
+			send.push_back(UVs[face.first.vt*2+1]);
+			
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it->second);
+		}
+		
+		auto it_2 = check_repeat.find(face.second);
+		if(it_2 == check_repeat.end()){
+			check_repeat[face.second]=idx;
+			send.push_back(vertices[face.second.v*3]);
+			send.push_back(vertices[face.second.v*3+1]);
+			send.push_back(vertices[face.second.v*3+2]);
+			
+			send.push_back(UVs[face.second.vt*2]);
+			send.push_back(UVs[face.second.vt*2+1]);
+			
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it_2->second);
+		}
+		
+		auto it_3 = check_repeat.find(face.third);
+		if(it_3 == check_repeat.end()){
+			check_repeat[face.third]=idx;
+			send.push_back(vertices[face.third.v*3]);
+			send.push_back(vertices[face.third.v*3+1]);
+			send.push_back(vertices[face.third.v*3+2]);
+			
+			send.push_back(UVs[face.third.vt*2]);
+			send.push_back(UVs[face.third.vt*2+1]);
+			
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it_3->second);
+		}
     }
 
     return indices;
@@ -128,18 +174,22 @@ void Car::Generate(){
 	}
 	
 	std::vector<float> vertices;
+	std::vector<float> send;
 	std::vector<float> UVs;
 	std::vector<float> normales;
 	std::vector<FaceVertex> faces;
     std::vector<unsigned int> indices;
 
+	std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash> check_repeat;
+
 	vertices.reserve(MAX_SIZE);
+	send.reserve(MAX_SIZE);
 	UVs.reserve(MAX_SIZE);
 	normales.reserve(MAX_SIZE);
 	indices.reserve(MAX_SIZE);
 	faces.reserve(MAX_SIZE);
 
-    unsigned int base=world->all_vertices.size()/3;
+    unsigned int base=world->all_vertices.size()/5;
 	
 	std::string line;
 	Mesh *new_mesh=nullptr;
@@ -154,17 +204,37 @@ void Car::Generate(){
 		else if(inicio=='o'){
 			if(new_mesh){
 				unsigned int start = indices.size();
-				auto tmp = Obtained_EBos(new_mesh->faces, base);
+				auto tmp = Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces);
 				ShapeNode* node=nullptr;
 
+				std::string path="F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/textures/";
 				if(new_mesh->name=="Timon"){
-					node=new Timon(world,new_mesh->name);
+					node=new Timon(world,new_mesh->name,new_mesh->mtl);
+					path+=new_mesh->mtl;
+					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+					std::cout << "Mesh: " << new_mesh->name << std::endl;
+					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+					std::cout << "Full path: " << path << std::endl;
+					node->Shader.LoadTexture(path);
 				}
-				else if(new_mesh->name=="Mclaren"){
-					node=new Chassis(world,new_mesh->name);
+				else if(new_mesh->name.substr(0,6)=="Llanta"){
+					node=new Llanta(world,new_mesh->name,new_mesh->mtl);
+					path+=new_mesh->mtl;
+					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+					std::cout << "Mesh: " << new_mesh->name << std::endl;
+					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+					std::cout << "Full path: " << path << std::endl;
+					node->Shader.LoadTexture(path);
+					
 				}
 				else{
-					node=new Llanta(world,new_mesh->name);
+					node=new Chassis(world,new_mesh->name,new_mesh->mtl);
+					path+=new_mesh->mtl;
+					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+					std::cout << "Mesh: " << new_mesh->name << std::endl;
+					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+					std::cout << "Full path: " << path << std::endl;
+					node->Shader.LoadTexture(path);
 				}
 
 				node->offset=start;
@@ -205,17 +275,36 @@ void Car::Generate(){
 	
 	if(new_mesh){
 		unsigned int start = indices.size();
-		auto tmp = Obtained_EBos(new_mesh->faces, base);
+		auto tmp = Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces);
 		ShapeNode* node=nullptr;
 
+		std::string path="F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/textures/";
 		if(new_mesh->name=="Timon"){
-			node=new Timon(world,new_mesh->name);
+			node=new Timon(world,new_mesh->name,new_mesh->mtl);
+			path+=new_mesh->mtl;
+			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+			std::cout << "Mesh: " << new_mesh->name << std::endl;
+			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+			std::cout << "Full path: " << path << std::endl;
+			node->Shader.LoadTexture(path);
 		}
 		else if(new_mesh->name=="Mclaren"){
-			node=new Chassis(world,new_mesh->name);
+			node=new Chassis(world,new_mesh->name,new_mesh->mtl);
+			path+=new_mesh->mtl;
+			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+			std::cout << "Mesh: " << new_mesh->name << std::endl;
+			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+			std::cout << "Full path: " << path << std::endl;
+			node->Shader.LoadTexture(path);
 		}
 		else{
-			node=new Llanta(world,new_mesh->name);
+			node=new Llanta(world,new_mesh->name,new_mesh->mtl);
+			path+=new_mesh->mtl;
+			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
+			std::cout << "Mesh: " << new_mesh->name << std::endl;
+			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
+			std::cout << "Full path: " << path << std::endl;
+			node->Shader.LoadTexture(path);
 		}
 
 		node->offset=start;
@@ -228,7 +317,7 @@ void Car::Generate(){
 		
 	}
 	
-	this->EBOs_range =world->Add_Batch(vertices,indices,base);
+	this->EBOs_range =world->Add_Batch(send,indices,base);
 	std::cout << "========== RESUMEN ==========" << std::endl;
 	std::cout << "Vertices : " << vertices.size()/3 << std::endl;
 	std::cout << "UVs      : " << UVs.size()/2 << std::endl;
