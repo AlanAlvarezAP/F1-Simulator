@@ -1,64 +1,30 @@
-#include "Car.h"
+#include "Circuit.h"
 
 #include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-
-Llanta::Llanta(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
-
-void Llanta::Generate(){
+Parts_Circuit::Parts_Circuit(World* world,std::string nombre,std::string name_mtl,RGB colors):ShapeNode(world,0,nombre),mtl(name_mtl){
+	this->color=colors;
+}
+void Parts_Circuit::Generate(){
     IsDrawable = true;
 }
 
-void Llanta::DrawGeometry(const Matrix& parent){
+void Parts_Circuit::DrawGeometry(const Matrix& parent){
     Shader.use();
     Shader.SetMatrix(parent);
-	Shader.SetUseTexture(true);
-	Shader.SetTexture();
-
-    Shader.SetColor(1.0f, 1.0f, 1.0f);
+	Shader.SetUseTexture(false);
+    Shader.SetColor(color.r,color.g,color.b);
 
 	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
 }
 
+Circuit::Circuit(World* world, const char* file_path):ShapeNode(world, 0, "Circuito"), file(file_path) {}
 
-Timon::Timon(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
 
-void Timon::Generate(){
-    IsDrawable = true;
-}
 
-void Timon::DrawGeometry(const Matrix& parent){
-    Shader.use();
-    Shader.SetMatrix(parent);
-	Shader.SetUseTexture(true);
-	Shader.SetTexture();
-
-    Shader.SetColor(1.0f, 1.0f, 1.0f);
-
-	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
-}
-
-Chassis::Chassis(World* world,std::string nombre,std::string name_mtl):ShapeNode(world,0,nombre),mtl(name_mtl){}
-void Chassis::Generate(){
-    IsDrawable = true;
-}
-
-void Chassis::DrawGeometry(const Matrix& parent){
-    Shader.use();
-    Shader.SetMatrix(parent);
-	Shader.SetUseTexture(true);
-	Shader.SetTexture();
-
-    Shader.SetColor(1.0f, 1.0f, 1.0f);
-
-	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
-}
-
-Car::Car(World* world, const char* file_path):ShapeNode(world, 0, "McLaren"), file(file_path) {}
-
-void Car::Generate(){
+void Circuit::Generate(){
 	std::ifstream lector(file,std::ios::in);
 	
 	if(!lector.is_open()){
@@ -100,34 +66,18 @@ void Car::Generate(){
 				auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces,base);
 				ShapeNode* node=nullptr;
 
-				std::string path="F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/textures/";
-				if(new_mesh->name=="Timon"){
-					node=new Timon(world,new_mesh->name,new_mesh->mtl);
-					path+=new_mesh->mtl;
-					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-					std::cout << "Mesh: " << new_mesh->name << std::endl;
-					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-					std::cout << "Full path: " << path << std::endl;
-					node->Shader.LoadTexture(path);
+				if(new_mesh->name=="Barrier_red"){
+					node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[ROJO]);
 				}
-				else if(new_mesh->name.substr(0,6)=="Llanta"){
-					node=new Llanta(world,new_mesh->name,new_mesh->mtl);
-					path+=new_mesh->mtl;
-					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-					std::cout << "Mesh: " << new_mesh->name << std::endl;
-					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-					std::cout << "Full path: " << path << std::endl;
-					node->Shader.LoadTexture(path);
+				else if(new_mesh->name=="Pitlane"){
+					node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[NEGRO]);
 					
 				}
+				else if(new_mesh->name=="Grass"){
+					node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[OLIVA]);
+				}
 				else{
-					node=new Chassis(world,new_mesh->name,new_mesh->mtl);
-					path+=new_mesh->mtl;
-					std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-					std::cout << "Mesh: " << new_mesh->name << std::endl;
-					std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-					std::cout << "Full path: " << path << std::endl;
-					node->Shader.LoadTexture(path);
+					node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[BLANCO]);
 				}
 
 				node->offset=world->all_EBOs.size()+start;
@@ -171,33 +121,18 @@ void Car::Generate(){
 		auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces,base);
 		ShapeNode* node=nullptr;
 
-		std::string path="F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/textures/";
-		if(new_mesh->name=="Timon"){
-			node=new Timon(world,new_mesh->name,new_mesh->mtl);
-			path+=new_mesh->mtl;
-			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-			std::cout << "Mesh: " << new_mesh->name << std::endl;
-			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-			std::cout << "Full path: " << path << std::endl;
-			node->Shader.LoadTexture(path);
+		if(new_mesh->name=="Barrier_red"){
+			node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[ROJO]);
 		}
-		else if(new_mesh->name=="Mclaren"){
-			node=new Chassis(world,new_mesh->name,new_mesh->mtl);
-			path+=new_mesh->mtl;
-			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-			std::cout << "Mesh: " << new_mesh->name << std::endl;
-			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-			std::cout << "Full path: " << path << std::endl;
-			node->Shader.LoadTexture(path);
+		else if(new_mesh->name=="Pitlane"){
+			node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[NEGRO]);
+			
+		}
+		else if(new_mesh->name=="Grass"){
+			node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[OLIVA]);
 		}
 		else{
-			node=new Llanta(world,new_mesh->name,new_mesh->mtl);
-			path+=new_mesh->mtl;
-			std::cout << "=== CARGANDO TEXTURA ===" << std::endl;
-			std::cout << "Mesh: " << new_mesh->name << std::endl;
-			std::cout << "MTL file reference: " << new_mesh->mtl << std::endl;
-			std::cout << "Full path: " << path << std::endl;
-			node->Shader.LoadTexture(path);
+			node=new Parts_Circuit(world,new_mesh->name,new_mesh->mtl,ColorTable[BLANCO]);
 		}
 
 		node->offset=world->all_EBOs.size()+start;
@@ -210,6 +145,7 @@ void Car::Generate(){
 		
 	}
 	
+	
 	this->EBOs_range =world->Add_Batch(send,indices,base);
 	std::cout << "========== RESUMEN ==========" << std::endl;
 	std::cout << "Vertices : " << vertices.size()/3 << std::endl;
@@ -219,7 +155,7 @@ void Car::Generate(){
 }
 
 
-void Car::printMenu(){
+void Circuit::printMenu(){
 	std::cout << "===================================" << std::endl;
     std::cout << "|        Bienvenido a             |" << std::endl;
     std::cout << "|     Simulador de F1             |" << std::endl;

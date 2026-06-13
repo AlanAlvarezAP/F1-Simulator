@@ -8,6 +8,54 @@
 
 class ShapeNode;
 
+// -------------- LISTA DE CLASES PARA PARSEAR Y MESH LOGIC -------------
+
+class FaceVertex{
+public:
+	class FaceIndex{
+	public:
+		int v,vt,vn;
+	public:
+		bool operator==(const FaceIndex& other) const{
+			return (v==other.v) && (vt==other.vt) && (vn==other.vn);
+		}
+	};
+public:
+    FaceIndex first;
+    FaceIndex second;
+    FaceIndex third;
+	
+};
+
+class FaceIndexHash {
+public:
+    size_t operator()(const FaceVertex::FaceIndex& f) const {
+        size_t h1 = std::hash<int>()(f.v);
+        size_t h2 = std::hash<int>()(f.vt);
+        size_t h3 = std::hash<int>()(f.vn);
+
+        return h1^(h2<<1)^(h3<<2);
+    }
+};
+
+class Mesh{
+public:
+	std::string name;
+	std::string mtl;
+	std::vector<FaceVertex> faces;
+	unsigned int ebo_start;
+};
+// -------------- FIN PARSER Y MESH LOGIC -------------
+
+
+class Parser{
+public:
+	std::string Optimize_Parser(const std::string &line);
+	FaceVertex Optimize_Parser_Face(const std::string &line);
+	Point Optimize_Parser_Numeric(const std::string &line,const int offset);
+	std::vector<unsigned int> Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int& base);	
+};
+
 class World{
 public:
 	std::vector<float> all_vertices;
@@ -35,6 +83,7 @@ public:
 	RGB color;
 	ShapeNode* parent;
 	World* world;
+	Parser parser;
 	std::string name;
 	bool IsDrawable;
 	int selected_part;
@@ -54,6 +103,7 @@ public:
 	virtual void DrawGeometry(const Matrix& parent){}
 	void ApplyAnimation(char type,char axis,char local_world,float step) override;
 };
+
 
 
 

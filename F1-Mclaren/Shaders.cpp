@@ -24,12 +24,15 @@ const char* fragment_shader="#version 330 core\n"
 "out vec4 outColor;\n"
 "uniform vec3 ouCol;\n"
 "uniform sampler2D ouTexture;\n"
+"uniform bool useTexture;\n"
 "void main(){\n"
-"   vec4 texColor = texture(ouTexture, inOutUV);\n"
-"   if(texColor.a < 0.1)\n"
-"       outColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
-"   else\n"
-"       outColor = texColor * vec4(ouCol, 1.0);\n"
+"   if(useTexture){\n"
+"       vec4 texColor = texture(ouTexture, inOutUV);\n"
+"       outColor = texColor * vec4(ouCol,1.0);\n"
+"	}\n"
+"   else{\n"
+"       outColor = vec4(ouCol,1.0);\n"
+"	}\n"
 "}\n";
 
 Shaders::Shaders(){
@@ -153,4 +156,16 @@ void Shaders::SetTexture(){
 		return;
 	}
 	glUniform1i(Model_loc,0);
+}
+
+void Shaders::SetUseTexture(bool value){
+    int loc = glGetUniformLocation(program_id,"useTexture");
+
+    if(loc == -1)
+    {
+        std::cout << "Couldn't find useTexture\n";
+        return;
+    }
+
+    glUniform1i(loc,value);
 }

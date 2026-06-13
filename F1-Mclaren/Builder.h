@@ -5,6 +5,7 @@
 #include "Sphere.h"
 #include "Colors.h"
 #include "Camera.h"
+#include "Circuit.h"
 
 class Builder{
 public:
@@ -38,6 +39,15 @@ public:
 
 		std::cout << "GEN F1-Mclaren :DDDDD" << std::endl;
         return car;
+    }
+	static Circuit* BuildCircuitScene(World* &mundito) {
+		const char* path = "F:/Comp Grafica/glfw-master/OwnProjects/F1-Mclaren/circuit/circuit.obj";
+        Circuit* circuit = new Circuit(mundito, path);
+        mundito->root->AddChildren(circuit);
+        circuit->Generate();
+
+		std::cout << "GEN circuit :DDDDD" << std::endl;
+        return circuit;
     }
 	
 	static Camera* BuildCamera(){

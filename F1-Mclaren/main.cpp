@@ -35,6 +35,7 @@ Sphere* sphere = nullptr;
 Camera* cam=nullptr;
 Animator* anim=nullptr;
 Car* carro=nullptr;
+Circuit* circuit=nullptr;
 bool Target_free=false;
 float dt=0.0f,lastX=0.0f,lastY=0.0f;
 
@@ -43,6 +44,13 @@ int currentSceneIndex = 5;
 
 
 //------------- SECCION DE TESTS ---------------//
+void alinear(){
+	Animation_Step* movCarX= new Animation_Step(carro,0.001f,'a',-3.0f,'x','W');
+	Animation_Step* movCarY= new Animation_Step(carro,0.001f,'a',-1.0f,'y','W');
+	Animation_Step* movCamX= new Animation_Step(cam,0.001f,'a',-3.0f,'x','W');
+	anim->Add_Animations(std::vector<Animation_Step*>{movCarX,movCarY,movCamX}, 'N');
+}
+
 void tests_anim(){
 
 	// CUIDADO CON DOBLE RELEASE
@@ -157,9 +165,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 }
 
 void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
-	if(action != GLFW_PRESS){
-		return;
-	}
 	
 	switch(key){
 		case GLFW_KEY_ESCAPE:{
@@ -287,10 +292,11 @@ int main(){
 	//cube = Builder::BuildCubeScene(mundito,{0.0f,0.0f,0.0f});
 	//sphere=Builder::BuildSphereScene(mundito,0.5f);
 	carro=Builder::BuildCarScene(mundito);
+	circuit=Builder::BuildCircuitScene(mundito);
 	
 	// Ojo aca cambiar escena inicial :D
 	mundito->activeSceneNode= carro;
-
+	alinear();
 	mundito->activeSceneNode->printMenu();
 	//general_Menu();
 
@@ -305,8 +311,8 @@ int main(){
 	int fpsFrames = 0;
 	
 	
-	float dist = 0.7f;
-	float altura = 0.5f;
+	float dist = 2.0f;
+	float altura = 1.0f;
 
 	while(!glfwWindowShouldClose(window)){
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -345,7 +351,7 @@ int main(){
 		else {
 			cam->UpdateCam(FREE);
 		}
-        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 100.0f));
+        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 1000.0f));
 		
 		glBindVertexArray(0);
 		

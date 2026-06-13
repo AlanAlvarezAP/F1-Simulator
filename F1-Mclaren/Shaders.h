@@ -17,4 +17,5 @@ public:
 	void LoadTexture(const std::string& path);
 	void SetProjection(const Matrix& mat);
 	void SetTexture();
+	void SetUseTexture(bool value);
 };
