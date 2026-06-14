@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 
 World::World(){
 	root = new ShapeNode(this, GL_TRIANGLES, "ROOT");
@@ -219,6 +223,167 @@ void ShapeNode::ApplyAnimation(char type,char axis,char local_world,float step){
 			break;
 		}
 	}
+}
+
+// -------------- LISTA DE CLASES PARA PARSEAR Y MESH LOGIC -------------
+
+std::string Parser::Optimize_Parser(const std::string &line){
+	const char* mov=line.c_str();
+	
+	while(*mov && *mov != ' '){
+		mov++;
+	}
+	mov++;
+	
+	return mov;
+}
+
+FaceVertex Parser::Optimize_Parser_Face(const std::string &line){
+	FaceVertex face;
+	const char* mov=line.c_str() + 2;
+	char* end=nullptr;
+	
+	face.first.v = strtol(mov,&end,10);face.first.v--;mov = end;mov++;
+	face.first.vt = strtol(mov,&end,10);face.first.vt--;mov = end;mov++;
+	face.first.vn = strtol(mov,&end,10);face.first.vn--;mov = end;mov++;
+	
+	face.second.v = strtol(mov,&end,10);face.second.v--;mov = end;mov++;
+	face.second.vt = strtol(mov,&end,10);face.second.vt--;mov = end;mov++;
+	face.second.vn = strtol(mov,&end,10);face.second.vn--;mov = end;mov++;
+	
+	face.third.v = strtol(mov,&end,10);face.third.v--;mov = end;mov++;
+	face.third.vt = strtol(mov,&end,10);face.third.vt--;mov = end;mov++;
+	face.third.vn = strtol(mov,&end,10);face.third.vn--;mov = end;
+	
+	return face;
+}
+
+Point Parser::Optimize_Parser_Numeric(const std::string &line,const int offset){
+	Point tmp;
+	const char* mov=line.c_str() + offset;
+	char* end=nullptr;
+	
+	while(*mov == ' '){
+		mov++;
+	}
+	tmp.x = strtof(mov,&end);
+	mov=end;
+	mov++;
+	
+	tmp.y = strtof(mov,&end);
+	mov=end;
+	mov++;
+	
+	tmp.z = strtof(mov,&end);
+	mov=end;
+	
+	return tmp;
+}
+
+
+std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs, std::vector<float> &Normals,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int &base){
+    std::vector<unsigned int> indices;
+    indices.reserve(faces.size() * 3);
+
+    for(size_t i = 0; i < faces.size(); i++){
+		unsigned int idx= send.size()/5 + base;
+		auto face = faces[i];
+		
+		auto it = check_repeat.find(face.first);
+		if(it == check_repeat.end()){
+			check_repeat[face.first]=idx;
+			send.push_back(vertices[face.first.v*3]);
+			send.push_back(vertices[face.first.v*3+1]);
+			send.push_back(vertices[face.first.v*3+2]);
+			
+			send.push_back(UVs[face.first.vt*2]);
+			send.push_back(UVs[face.first.vt*2+1]);
+			
+			send.push_back(Normals[face.first.vn*3]);     // NX
+			send.push_back(Normals[face.first.vn*3+1]);   // NY
+			send.push_back(Normals[face.first.vn*3+2]);   // NZ
+			
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it->second);
+		}
+		
+		auto it_2 = check_repeat.find(face.second);
+		if(it_2 == check_repeat.end()){
+			check_repeat[face.second]=idx;
+			send.push_back(vertices[face.second.v*3]);
+			send.push_back(vertices[face.second.v*3+1]);
+			send.push_back(vertices[face.second.v*3+2]);
+			
+			send.push_back(UVs[face.second.vt*2]);
+			send.push_back(UVs[face.second.vt*2+1]);
+			
+			send.push_back(Normals[face.first.vn*3]);     // NX
+			send.push_back(Normals[face.first.vn*3+1]);   // NY
+			send.push_back(Normals[face.first.vn*3+2]);   // NZ
+			
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it_2->second);
+		}
+		
+		auto it_3 = check_repeat.find(face.third);
+		if(it_3 == check_repeat.end()){
+			check_repeat[face.third]=idx;
+			send.push_back(vertices[face.third.v*3]);
+			send.push_back(vertices[face.third.v*3+1]);
+			send.push_back(vertices[face.third.v*3+2]);
+			
+			send.push_back(UVs[face.third.vt*2]);
+			send.push_back(UVs[face.third.vt*2+1]);
+
+			send.push_back(Normals[face.first.vn*3]);     // NX
+			send.push_back(Normals[face.first.vn*3+1]);   // NY
+			send.push_back(Normals[face.first.vn*3+2]);   // NZ
+
+			indices.push_back(idx++);
+		}else{
+			indices.push_back(it_3->second);
+		}
+    }
+
+    return indices;
+}
+
+
+std::unordered_map<std::string, Material> Parser::ParseMTL(const std::string& path) {
+    std::unordered_map<std::string, Material> materials;
+    std::ifstream file(path);
+    std::string line;
+
+    if (!file.is_open()) {
+        std::cout << "ERROR: No se pudo abrir el archivo .mtl en la ruta: " << path << std::endl;
+        return materials;
+    }
+
+    std::string current_mtl = "";
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream ss(line);
+        std::string prefix;
+        ss >> prefix;
+
+        if (prefix == "newmtl") {
+            ss >> current_mtl;
+            materials[current_mtl].name = current_mtl;
+        } else if (prefix == "Ka" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ka[0] >> materials[current_mtl].Ka[1] >> materials[current_mtl].Ka[2]; // Lee r, g, b ambiental
+        } else if (prefix == "Kd" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Kd[0] >> materials[current_mtl].Kd[1] >> materials[current_mtl].Kd[2]; // Lee r, g, b difuso
+        } else if (prefix == "Ks" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ks[0] >> materials[current_mtl].Ks[1] >> materials[current_mtl].Ks[2]; // Lee r, g, b especular
+        } else if (prefix == "Ns" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ns; // Lee el factor de brillo
+        }
+    }
+    
+    file.close();
+    return materials;
 }
 
 

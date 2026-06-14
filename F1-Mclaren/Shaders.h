@@ -6,7 +6,7 @@ class Matrix;
 
 class Shaders{
 private:
-	unsigned int program_id,vertex_shad_id,fragment_shad_id;
+	unsigned int program_id,vertex_shad_id,fragment_shad_id,texture_id;
 public:
 	Shaders();
 	void use();
@@ -14,5 +14,10 @@ public:
 	void SetColor(const float &r,const float &g,const float &b);
 	void SetMatrix(const Matrix& mat);
 	void SetView(const Matrix& mat);
+	void LoadTexture(const std::string& path);
 	void SetProjection(const Matrix& mat);
+	void SetTexture();
+	void SetUseTexture(bool value);
+	void SetMaterial(const float* Ka, const float* Kd, const float* Ks, float Ns);
+    void SetLight(const float* lightPos, const float* lightColor, const float* viewPos);
 };

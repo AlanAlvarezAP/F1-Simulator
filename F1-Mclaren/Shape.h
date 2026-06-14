@@ -8,6 +8,65 @@
 
 class ShapeNode;
 
+// -------------- LISTA DE CLASES PARA PARSEAR Y MESH LOGIC -------------
+
+class FaceVertex{
+public:
+	class FaceIndex{
+	public:
+		int v,vt,vn;
+	public:
+		bool operator==(const FaceIndex& other) const{
+			return (v==other.v) && (vt==other.vt) && (vn==other.vn);
+		}
+	};
+public:
+    FaceIndex first;
+    FaceIndex second;
+    FaceIndex third;
+	
+};
+
+class FaceIndexHash {
+public:
+    size_t operator()(const FaceVertex::FaceIndex& f) const {
+        size_t h1 = std::hash<int>()(f.v);
+        size_t h2 = std::hash<int>()(f.vt);
+        size_t h3 = std::hash<int>()(f.vn);
+
+        return h1^(h2<<1)^(h3<<2);
+    }
+};
+
+class Mesh{
+public:
+	std::string name;
+	std::string mtl;
+	std::vector<FaceVertex> faces;
+	unsigned int ebo_start;
+};
+// -------------- FIN PARSER Y MESH LOGIC -------------
+
+struct Material {
+    std::string name;
+    float Ka[3] = {0.2f, 0.2f, 0.2f}; // Color Ambiente por defecto
+    float Kd[3] = {0.8f, 0.8f, 0.8f}; // Color Difuso por defecto
+    float Ks[3] = {1.0f, 1.0f, 1.0f}; // Color Especular por defecto
+    float Ns = 32.0f;                 // Brillo por defecto
+};
+
+
+class Parser{
+public:
+	std::string Optimize_Parser(const std::string &line);
+	FaceVertex Optimize_Parser_Face(const std::string &line);
+	Point Optimize_Parser_Numeric(const std::string &line,const int offset);
+	std::vector<unsigned int> Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::vector<float> &Normals, std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int& base);	
+	std::unordered_map<std::string, Material> ParseMTL(const std::string& path);
+};
+
+
+
 class World{
 public:
 	std::vector<float> all_vertices;
@@ -31,10 +90,12 @@ public:
 	std::vector<unsigned int> EBOs_range;
 	Shaders Shader;
 	std::vector<ShapeNode*> children;
+	Material material;
 	unsigned int primitive,offset;
 	RGB color;
 	ShapeNode* parent;
 	World* world;
+	Parser parser;
 	std::string name;
 	bool IsDrawable;
 	int selected_part;
@@ -57,6 +118,7 @@ public:
 
 
 
+
 // -------------- LISTA DE POSIBLES FIGURAS POLIMORFICAS -------------
 // Circulo
 class Circle: public ShapeNode{
@@ -69,6 +131,8 @@ public:
 	void Generate() override;
 	void DrawGeometry(const Matrix& parent) override;
 };
+
+
 
 // PIZZA
 
