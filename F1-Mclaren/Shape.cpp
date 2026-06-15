@@ -382,4 +382,3 @@ void Circle::DrawGeometry(const Matrix& parent){
 	
 	glDrawElements(primitive,EBOs_range.size(),GL_UNSIGNED_INT,(void*)(offset*sizeof(unsigned int)));
 }
-
