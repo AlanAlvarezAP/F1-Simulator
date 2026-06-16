@@ -292,7 +292,7 @@ int main(){
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
 	
-	cube = Builder::BuildCubeScene(mundito,{2.0f,3.0f,0.0f});
+	cube = Builder::BuildCubeScene(mundito,{-8.0f,3.0f,7.0f});
 	//sphere=Builder::BuildSphereScene(mundito,0.5f);
 	carro=Builder::BuildCarScene(mundito);
 	circuit=Builder::BuildCircuitScene(mundito);
@@ -316,6 +316,14 @@ int main(){
 	
 	float dist = 3.0f;
 	float altura = 2.5f;
+	
+	
+	// ORBITA DE LA LUZ
+	float anguloLuz = atan2(-7.0f, -8.0f); 
+	float radioLuz = sqrt((-8.0f) * (-8.0f) + (-7.0f) * (-7.0f));
+
+	// VELOCIDAD
+	float velocidadOrbita = 1.0f;
 	
 
 	while(!glfwWindowShouldClose(window)){
@@ -349,7 +357,17 @@ int main(){
 		
 		
 		// Para seguir
-
+		
+		Point cubePos = cube->GetWorldPosition();
+		anguloLuz -= velocidadOrbita * dt;
+		
+		mundito->lightPos.x = radioLuz * cos(anguloLuz);
+		mundito->lightPos.y = 5.0f;
+		mundito->lightPos.z = radioLuz * sin(anguloLuz);
+		
+		orbit();
+		
+		
 		Point target = mundito->activeSceneNode->GetWorldPosition();
 
 		int windowWidth = 1200;
