@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <string>
+
 #include <queue>
 
 #include "Shape.h"
@@ -29,10 +30,11 @@ World* mundito=nullptr;
 GLuint VAO,VBO,EBO;
 unsigned int NUM_REBANADAS=4,SELECT_REBANDA=0;
 char CURRENT_AXIS = 'z';
+Cube* cube=nullptr;
+Sphere* sphere = nullptr;
 Camera* cam=nullptr;
 Animator* anim=nullptr;
 Car* carro=nullptr;
-Car* carro2=nullptr;
 Circuit* circuit=nullptr;
 bool Target_free=false;
 float dt=0.0f,lastX=0.0f,lastY=0.0f;
@@ -40,96 +42,73 @@ float dt=0.0f,lastX=0.0f,lastY=0.0f;
 Camera_Status camMode = TARGETING;
 int currentSceneIndex = 5;
 
-std::vector<Point> routePoints;
 
-//------------- ANIMATION ---------------//
+struct ColorRGB {
+    float r, g, b;
+};
 
-void loadCarIntructions(Car* carro) {
-    while(!carro->animScript.empty())
-		carro->animScript.pop();
-    carro->currentStepTimer = 0.0f;
-    carro->isScriptPlaying = true;
+// Función para mezclar dos colores (Interpolación Lineal)
+// 't' debe ser un valor entre 0.0 y 1.0
+ColorRGB MezclarColor(ColorRGB color1, ColorRGB color2, float t) {
+    // Aseguramos que 't' no se salga de los límites
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
 
-    carro->addScriptStep(true, false, 4.75f, 25.0f, 0.0f);
-    carro->addScriptStep(true, false, 1.15f, 15.0f, -12.0f);
-    carro->addScriptStep(true, false, 2.2f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 2.75f, 25.0f, 4.75f);
-    carro->addScriptStep(true, false, 1.4f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.6f, 20.0f, 15.0f);
-    carro->addScriptStep(true, false, 0.5f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 1.0f, 20.0f, -20.0f);
-    carro->addScriptStep(true, false, 1.5f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 1.15f, 25.0f, -8.0f);
-    carro->addScriptStep(true, false, 1.5f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.3f, 25.0f, -15.0f);
-    carro->addScriptStep(true, false, 1.6f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.5f, 30.0f, -5.0f);
-    carro->addScriptStep(true, false, 0.15f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.5f, 30.0f, 5.0f);
-    carro->addScriptStep(true, false, 1.5f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.45f, 30.0f, 15.0f);
-    carro->addScriptStep(true, false, 0.1f, 30.0f, 5.0f);
-    carro->addScriptStep(true, false, 2.0f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 1.0f, 15.0f, -20.0f);
-    carro->addScriptStep(true, false, 0.2f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.5f, 30.0f, -8.0f);
-    carro->addScriptStep(true, false, 4.55f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.45f, 20.0f, 20.0f);
-    carro->addScriptStep(true, false, 0.1f, 30.0f, 10.0f);
-    carro->addScriptStep(true, false, 1.5f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.3f, 30.0f, 12.0f);
-    carro->addScriptStep(true, false, 0.2f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.3f, 30.0f, -12.0f);
-    carro->addScriptStep(true, false, 0.8f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.45f, 25.0f, -20.0f);
-    carro->addScriptStep(true, false, 0.9f, 30.0f, 0.0f);
-    carro->addScriptStep(true, false, 0.45f, 25.0f, -20.0f);
-    carro->addScriptStep(true, false, 0.1f, 30.0f, 5.0f);
-    carro->addScriptStep(true, false, 3.5f, 30.0f, 0.0f);
-    carro->addScriptStep(false, true, 1.0f, 0.0f, 0.0f);
+    ColorRGB resultado;
+    resultado.r = color1.r + (color2.r - color1.r) * t;
+    resultado.g = color1.g + (color2.g - color1.g) * t;
+    resultado.b = color1.b + (color2.b - color1.b) * t;
+    
+    return resultado;
 }
-
 //------------- SECCION DE TESTS ---------------//
 void alinear(){
-	Animation_Step* movCarX2= new Animation_Step(carro2,0.001f,'a',12.0f,'x','W');
-	Animation_Step* movCarY2= new Animation_Step(carro2,0.001f,'a',-1.0f,'y','W');
-	Animation_Step* movCarZ2= new Animation_Step(carro2,0.001f,'a',-10.0f,'z','W');
 	Animation_Step* movCarX= new Animation_Step(carro,0.001f,'a',-3.0f,'x','W');
 	Animation_Step* movCarY= new Animation_Step(carro,0.001f,'a',-1.0f,'y','W');
 	Animation_Step* movCamX= new Animation_Step(cam,0.001f,'a',-3.0f,'x','W');
-	anim->Add_Animations(std::vector<Animation_Step*>{
-		movCarX,movCarY,movCamX,movCarX2,movCarY2,movCarZ2
-	},'N');
+	anim->Add_Animations(std::vector<Animation_Step*>{movCarX,movCarY,movCamX}, 'N');
 }
 
 void tests_anim(){
+
 	// CUIDADO CON DOBLE RELEASE
 	// TEST CAMARA
+	//Animation_Step* moveRobot = new Animation_Step(robot, 4.0f, 'a', 10.0f, 'x', 'W');
+
 	// rotar la cámara 90 grados en yaw en 4 segundos
 	Animation_Step* rotateCam = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'y', 'W');
 	Animation_Step* rotateCam1 = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'y', 'W');
+
 	// rotar la cámara 90 grados en yaw en 4 segundos
 	Animation_Step* rotateCam2 = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'x', 'W');
+
 	//Pequeño movimiento para ver Z
 	Animation_Step* movCam1= new Animation_Step(cam,4.0f,'a',1.0f,'x','W');
 	Animation_Step* rotateCam3 = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'z', 'W');
+
 	// zoom suave
 	Animation_Step* zoomCam = new Animation_Step(cam, 4.0f, 'g', -40.0f, 'z', 'W');
+
 	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam}, 'S');
+	//anim->Add_Animations(std::vector<Animation_Step*>{moveRobot,rotateCam1}, 'S');
 	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam2}, 'S');
 	anim->Add_Animations(std::vector<Animation_Step*>{movCam1,rotateCam3}, 'S');
 }
 
-void orbit(){
-	// rotar la cámara 90 grados en yaw en 4 segundos
-	Animation_Step* rotateCam = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'y', 'W');
-	Animation_Step* rotateCam1 = new Animation_Step(cam, 4.0f, 'o', 360.0f, 'y', 'W');
 
-	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam}, 'S');
-	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam1}, 'S');
+void orbit(){
+
+
+	// rotar la cámara 90 grados en yaw en 4 segundos
+	Animation_Step* rotateCam = new Animation_Step(cube, 4.0f, 'd', 360.0f, 'y', 'W');
+
+	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam}, 'N');
 }
 
 //------------ FIN TESTS xd -------------------//
+
+
+
 void general_Menu(){
 	std::cout << "===================================" << std::endl;
     std::cout << "|        Bienvenido a             |" << std::endl;
@@ -154,7 +133,6 @@ void general_Menu(){
 void framebuffer_size_callback(GLFWwindow* window,int width,int height){
 	glViewport(0,0,width,height);
 }
-
 void set_Vs(){
 	glGenVertexArrays(1,&VAO);
 	glGenBuffers(1,&VBO);
@@ -165,19 +143,25 @@ void set_Vs(){
 	glBindBuffer(GL_ARRAY_BUFFER,VBO);
 	glBufferData(GL_ARRAY_BUFFER,mundito->all_vertices.size()*sizeof(float),mundito->all_vertices.data(),GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)0);
-	glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,5*sizeof(float),(void*)(3*sizeof(float)));
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+
+glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+
+glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,mundito->all_EBOs.size()*sizeof(unsigned int),mundito->all_EBOs.data(),GL_DYNAMIC_DRAW);
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
+glEnableVertexAttribArray(2);
+	
 	
 	glBindVertexArray(0);
+	
 }
-
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+
 	static bool firstMouse = true;
 
     if (firstMouse) {
@@ -186,27 +170,30 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
         firstMouse = false;
         return;
     }
+
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;
+
     lastX = xpos;
     lastY = ypos;
-    if (camMode == FREE)
-        cam->ProcessMouse(xoffset, yoffset);
-}
 
+    if (camMode == FREE) {
+        cam->ProcessMouse(xoffset, yoffset);
+    }
+}
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     cam->ProcessScroll((float)yoffset);
 }
 
 void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
-	if(action != GLFW_PRESS)
-		return;
+	
 	switch(key){
 		case GLFW_KEY_ESCAPE:{
 			// std::cout << "ESC presionado saliendo..." << std::endl;
 			glfwSetWindowShouldClose(window,GLFW_TRUE);
 			break;
 		}
+		
 		case GLFW_KEY_C:{
 			if(mods & GLFW_MOD_CONTROL){
 				std::cout << "CTRL+C presionado saliendo..." << std::endl;
@@ -214,17 +201,8 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 			}
 			break;
 		}
-		case GLFW_KEY_M:{
-		    Point pos = carro->GetWorldPosition();
-		    routePoints.push_back(pos);
-		    std::cout << "Saved Point: (" << pos.x << ", " << pos.y << ", " << pos.z << " )\n";
-			break;
-		}
-		case GLFW_KEY_1:{
-			if (!carro->isScriptPlaying)
-                loadCarIntructions(carro);
-            break;
-        }
+		
+		
 		case GLFW_KEY_X:{
 			CURRENT_AXIS='x';
 			std::cout << "Eje actual: X" << std::endl;
@@ -287,9 +265,12 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 			break;
 		}
 	}
-	if(mundito && mundito->activeSceneNode)
+	if(mundito && mundito->activeSceneNode){
 		mundito->activeSceneNode->handleKey(key,mods,CURRENT_AXIS);
+	}
+	
 }
+
 
 int main(){
 	glfwInit();
@@ -297,7 +278,13 @@ int main(){
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
 	
-	GLFWwindow* window=glfwCreateWindow(1200,800,"F1 Simulator - 4 Cameras",NULL,NULL);
+	GLFWwindow* window=glfwCreateWindow(
+		1200,
+		800,
+		"F1 Simulator - 4 Cameras",
+		NULL,
+		NULL
+	);
 	if(!window){
 		std::cout << "Windows didn't charge" << std::endl;
 		glfwTerminate();
@@ -309,40 +296,57 @@ int main(){
 		std::cout << "GLAD failed :( " << std::endl;
 		return -1;
 	}
+	
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
 	glfwSetKeyCallback(window,key_callback);
 	glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	
 	mundito = new World();
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
-	// calling builder functoins
-	carro = Builder::BuildCarScene(mundito);
-	carro2 = Builder::BuildCarScene(mundito);
-	circuit = Builder::BuildCircuitScene(mundito);
-	circuit->Mat.UpdateView('g', 1.4f, 1.0f, 1.4f, 'z', 'L');
+	
+	cube = Builder::BuildCubeScene(mundito,{-8.0f,-100.0f,7.0f});
+	//sphere=Builder::BuildSphereScene(mundito,0.5f);
+	carro=Builder::BuildCarScene(mundito);
+	circuit=Builder::BuildCircuitScene(mundito);
+	
 	// Ojo aca cambiar escena inicial :D
-	mundito->activeSceneNode = carro;
+	mundito->activeSceneNode= carro;
 	alinear();
 	mundito->activeSceneNode->printMenu();
 	//general_Menu();
+
 	set_Vs();
 	mundito->print(mundito->root);
 	glEnable(GL_DEPTH_TEST);
 	// Para WIREFRAME
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	
 	float lastTime=glfwGetTime();
 	double fpsTime = 0.0;
 	int fpsFrames = 0;
 	
-	float dist = 3.0f; // 0.8
-	float altura = 5.0f; // 0.35
+	
+	float dist = 3.0f;
+	float altura = 2.5f;
+	
+	
+	// ORBITA DE LA LUZ
+	float anguloLuz = atan2(-7.0f, -8.0f); 
+	float radioLuz = sqrt((-70.0f) * (-70.0f) + (-70.0f) * (-70.0f));
+
+	// VELOCIDAD
+	float velocidadOrbita = 1.0f;
+	bool fondo = true;
 
 	while(!glfwWindowShouldClose(window)){
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		
+		
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		float NowTime=glfwGetTime();
@@ -361,68 +365,113 @@ int main(){
 			fpsFrames = 0;
 			fpsTime = 0.0;
 		}
-
-		bool inputForward = (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS);
-		bool inputBackward = (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS);
-		bool inputBrake = (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS);
-		bool inputLeft = (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS);
-		bool inputRight = (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS);
-
-		bool inputForward2 = (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS);
-		bool inputBackward2 = (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS);
-		bool inputBrake2 = (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS);
-		bool inputLeft2 = (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS);
-		bool inputRight2 = (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS);
-
-		if (carro->isScriptPlaying) {
-            carro->updateScriptAnimation(dt, inputForward, inputBrake);
-            inputBackward = false;
-        }
-		carro->updatePhysics(dt, inputForward, inputBackward, inputBrake, inputLeft, inputRight);
-		carro2->updatePhysics(dt, inputForward2, inputBackward2, inputBrake2, inputLeft2, inputRight2);
 		
 		glBindVertexArray(VAO);
 		glPointSize(4.0f);
 		glLineWidth(4.0f);
 		
+		
 		glfwPollEvents();
 		anim->Execute_animations(dt);
 		
+		
 		// Para seguir
-		if (camMode == TARGETING) {
-			//cam->UpdateCam(TARGETING, mundito->activeSceneNode->GetWorldPosition());
-			Point carPos = mundito->activeSceneNode->GetWorldPosition();
-   			float dirZ_X = carro->Mat.matrix[8];
-   			float dirZ_Y = carro->Mat.matrix[9];
-   			float dirZ_Z = carro->Mat.matrix[10];
-			float offsetAdelante = 0.2f;
-    		float alturaPiloto = 0.2f;
-   			float camPosX = carPos.x - (dirZ_X * dist);
-   			float camPosY = carPos.y + altura;
-   			float camPosZ = carPos.z - (dirZ_Z * dist);
-   			cam->Position.x = camPosX;
-   			cam->Position.y = camPosY;
-   			cam->Position.z = camPosZ;
-			/*
-			float distanciaMirada = 10.0f; 
-			float inclinacionMirada = 0.0f;
-    		Point puntoDeFuga;
-    		puntoDeFuga.x = camPosX + (dirZ_X * distanciaMirada);
-    		puntoDeFuga.y = camPosY + inclinacionMirada;
-    		puntoDeFuga.z = camPosZ + (dirZ_Z * distanciaMirada);
-   			cam->UpdateCam(TARGETING, puntoDeFuga);
-			*/
-   			cam->UpdateCam(TARGETING, carPos);
-		}
-		else
-			cam->UpdateCam(FREE);
-        mundito->DrawShape(cam->GetLookAt(),cam->GetProjection(800.0f, 800.0f, 0.1f, 1000.0f));
+		
+		Point cubePos = cube->GetWorldPosition();
+		anguloLuz -= velocidadOrbita * dt * 0.4;
+		
+		float yyy = radioLuz * sin(anguloLuz);
+		
+		if(yyy < 0)fondo = false;
+		else fondo = true;
+		
+		mundito->lightPos.x = 7.0f;
+		mundito->lightPos.y = radioLuz * sin(anguloLuz);
+		mundito->lightPos.z = radioLuz * cos(anguloLuz);
+		
+		orbit();
+		
+		
+		ColorRGB colorNoche = {0.04f, 0.06f, 0.13f};
+		ColorRGB colorDia   = {0.53f, 0.81f, 0.92f};
+
+		float tuValorIluminacion = yyy; // Info de la altura de la luz
+
+		float t = tuValorIluminacion / 100.0f; 
+
+		ColorRGB colorFondo = MezclarColor(colorNoche, colorDia, t);
+
+		glClearColor(colorFondo.r, colorFondo.g, colorFondo.b, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		
+		Point target = mundito->activeSceneNode->GetWorldPosition();
+
+		int windowWidth = 1200;
+		int windowHeight = 800;
+
+		int halfW = windowWidth / 2;
+		int halfH = windowHeight / 2;
+
+		// CAMARA FRONTAL
+		Point posFront = {target.x, target.y + altura, target.z + dist}; 
+		Camera camFront(posFront, target, {0,1,0}, TARGETING);
+		glViewport(0, halfH, halfW, halfH);
+		mundito->DrawShape(
+			camFront.GetLookAt(),
+			camFront.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
+			posFront 
+		);
+
+		// CAMARA TRASERA
+		Point posBack = {target.x, target.y + altura, target.z - dist};
+		Camera camBack(posBack, target, {0,1,0}, TARGETING);
+		glViewport(halfW, halfH, halfW, halfH);
+		mundito->DrawShape(
+			camBack.GetLookAt(),
+			camBack.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
+			posBack 
+		);
+
+		// CAMARA IZQUIERDA
+		Point posLeft = {target.x - dist, target.y + altura, target.z};
+		Camera camLeft(posLeft, target, {0,1,0}, TARGETING);
+		glViewport(0, 0, halfW, halfH);
+		mundito->DrawShape(
+			camLeft.GetLookAt(),
+			camLeft.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
+			posLeft 
+		);	
+
+		// CAMARA DERECHA
+		Point posRight = {target.x + dist, target.y + altura, target.z};
+		Camera camRight(posRight, target, {0,1,0}, TARGETING);
+		glViewport(halfW, 0, halfW, halfH);
+		mundito->DrawShape(
+			camRight.GetLookAt(),
+			camRight.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
+			posRight 
+		);
+		glViewport(0, 0, windowWidth, windowHeight);
+
+		glEnable(GL_SCISSOR_TEST);
+
+		// línea vertical
+		glScissor(halfW - 1, 0, 2, windowHeight);
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+
+		// línea horizontal
+		glScissor(0, halfH - 1, windowWidth, 2);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glDisable(GL_SCISSOR_TEST);
 		
 		glBindVertexArray(0);
+		
         glfwSwapBuffers(window);
+        
     }
-	for(auto p : routePoints)
-		std::cout << "(" << p.x << ", " << p.y << ", " << p.z << " )\n";
 	delete mundito;
 	return 0;
 }
