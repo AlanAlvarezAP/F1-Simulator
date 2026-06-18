@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 
 
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
 
 World::World(){
 	root = new ShapeNode(this, GL_TRIANGLES, "ROOT");
@@ -15,9 +19,14 @@ World::~World(){
 	delete root;
 }
 
-void World::DrawShape(const Matrix& view,const Matrix& projection){
+void World::DrawShape(const Matrix& view,const Matrix& projection, const Point& camPos){
+	Shader_global.use();
+	float lightP[] = {lightPos.x, lightPos.y, lightPos.z};
+	float lightC[] = {1,1,1};
+	float camP[] = {camPos.x, camPos.y, camPos.z};
+	Shader_global.SetLight(lightP, lightC, camP);
     Matrix identity;
-    root->DrawShape(identity,view,projection);
+    root->DrawShape(identity, view, projection, camPos);
 }
 
 std::vector<unsigned int> World::Add_Batch(std::vector<float>& vectors,std::vector<unsigned int>& indices,unsigned int& offset){
@@ -86,16 +95,46 @@ void ShapeNode::ModifiedShaderColor(const float &r,const float &g,const float &b
 	this->Shader.SetColor(r,g,b);
 }
 
-void ShapeNode::DrawShape(const Matrix& parent,const Matrix& view,const Matrix& projection){
+void ShapeNode::DrawShape(const Matrix& parent,const Matrix& view,const Matrix& projection, const Point& camPos){
 	Matrix global = parent*this->Mat;
+	
+	Shader.use();
+	
 	Shader.SetView(view);
 	Shader.SetProjection(projection);
+	
+	float lightP[] = {
+        world->lightPos.x,
+        world->lightPos.y,
+        world->lightPos.z
+    };
+
+    float lightC[] = {1.0f, 0.95f, 0.8f};
+
+    float camP[] = {
+        camPos.x,
+        camPos.y,
+        camPos.z
+    };
+
+    Shader.SetLight(lightP, lightC, camP);
+	
+	// Filtramos si es la lámpara o no
+	if(this->name == "Cube"){ 
+		Shader.SetIsLightCube(true);
+		Shader.SetUseTexture(false);
+	} else {
+		Shader.SetIsLightCube(false);
+		Shader.SetMaterial(material.Ka, material.Kd, material.Ks, material.Ns);
+	}
+
 	if(IsDrawable){
 		this->DrawGeometry(global);
     }
 	
 	for(auto son : children){
-        son->DrawShape(global,view,projection);
+        // Pasamos camPos recursivamente a todos los hijos
+        son->DrawShape(global, view, projection, camPos);
 	}
 }
 
@@ -277,12 +316,12 @@ Point Parser::Optimize_Parser_Numeric(const std::string &line,const int offset){
 }
 
 
-std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int &base){
+std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs, std::vector<float> &Normals,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int &base){
     std::vector<unsigned int> indices;
     indices.reserve(faces.size() * 3);
 
     for(size_t i = 0; i < faces.size(); i++){
-		unsigned int idx= send.size()/5 + base;
+		unsigned int idx= send.size()/8 + base;
 		auto face = faces[i];
 		
 		auto it = check_repeat.find(face.first);
@@ -294,6 +333,10 @@ std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,st
 			
 			send.push_back(UVs[face.first.vt*2]);
 			send.push_back(UVs[face.first.vt*2+1]);
+			
+			send.push_back(Normals[face.first.vn*3]);     // NX
+			send.push_back(Normals[face.first.vn*3+1]);   // NY
+			send.push_back(Normals[face.first.vn*3+2]);   // NZ
 			
 			indices.push_back(idx++);
 		}else{
@@ -310,6 +353,10 @@ std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,st
 			send.push_back(UVs[face.second.vt*2]);
 			send.push_back(UVs[face.second.vt*2+1]);
 			
+			send.push_back(Normals[face.second.vn*3]);     // NX
+			send.push_back(Normals[face.second.vn*3+1]);   // NY
+			send.push_back(Normals[face.second.vn*3+2]);   // NZ
+			
 			indices.push_back(idx++);
 		}else{
 			indices.push_back(it_2->second);
@@ -324,7 +371,11 @@ std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,st
 			
 			send.push_back(UVs[face.third.vt*2]);
 			send.push_back(UVs[face.third.vt*2+1]);
-			
+
+			send.push_back(Normals[face.third.vn*3]);     // NX
+			send.push_back(Normals[face.third.vn*3+1]);   // NY
+			send.push_back(Normals[face.third.vn*3+2]);   // NZ
+
 			indices.push_back(idx++);
 		}else{
 			indices.push_back(it_3->second);
@@ -334,6 +385,41 @@ std::vector<unsigned int> Parser::Update_EBos_Vertex(std::vector<float>& send,st
     return indices;
 }
 
+
+std::unordered_map<std::string, Material> Parser::ParseMTL(const std::string& path) {
+    std::unordered_map<std::string, Material> materials;
+    std::ifstream file(path);
+    std::string line;
+
+    if (!file.is_open()) {
+        std::cout << "ERROR: No se pudo abrir el archivo .mtl en la ruta: " << path << std::endl;
+        return materials;
+    }
+
+    std::string current_mtl = "";
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream ss(line);
+        std::string prefix;
+        ss >> prefix;
+
+        if (prefix == "newmtl") {
+            ss >> current_mtl;
+            materials[current_mtl].name = current_mtl;
+        } else if (prefix == "Ka" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ka[0] >> materials[current_mtl].Ka[1] >> materials[current_mtl].Ka[2]; // Lee r, g, b ambiental
+        } else if (prefix == "Kd" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Kd[0] >> materials[current_mtl].Kd[1] >> materials[current_mtl].Kd[2]; // Lee r, g, b difuso
+        } else if (prefix == "Ks" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ks[0] >> materials[current_mtl].Ks[1] >> materials[current_mtl].Ks[2]; // Lee r, g, b especular
+        } else if (prefix == "Ns" && !current_mtl.empty()) {
+            ss >> materials[current_mtl].Ns; // Lee el factor de brillo
+        }
+    }
+    
+    file.close();
+    return materials;
+}
 
 
 
@@ -382,3 +468,4 @@ void Circle::DrawGeometry(const Matrix& parent){
 	
 	glDrawElements(primitive,EBOs_range.size(),GL_UNSIGNED_INT,(void*)(offset*sizeof(unsigned int)));
 }
+
