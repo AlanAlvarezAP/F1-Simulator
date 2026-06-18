@@ -32,7 +32,7 @@ public:
     }
 	
 	static Car* BuildCarScene(World* &mundito) {
-		const char* path = "F:/LabCompiler2026_I_CG/glfw-master/OwnProjects/F1-Mclaren-Camaras/models/F1-Mclaren_3.obj";
+		const char* path = "../OwnProjects/F1-Mclaren-Camaras/models/F1-Mclaren_3.obj";
         Car* car = new Car(mundito, path);
         mundito->root->AddChildren(car);
         car->Generate();
@@ -41,7 +41,7 @@ public:
         return car;
     }
 	static Circuit* BuildCircuitScene(World* &mundito) {
-		const char* path = "F:/LabCompiler2026_I_CG/glfw-master/OwnProjects/F1-Mclaren-Camaras/circuit/circuit.obj";
+		const char* path = "../OwnProjects/F1-Mclaren-Camaras/circuit/circuit.obj";
         Circuit* circuit = new Circuit(mundito, path);
         mundito->root->AddChildren(circuit);
         circuit->Generate();

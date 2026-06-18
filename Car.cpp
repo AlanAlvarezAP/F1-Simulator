@@ -96,7 +96,7 @@ void Car::Generate(){
 		char inicio=line[0];
 		if(inicio=='m'){
 			mtlib=parser.Optimize_Parser(line);
-			std::string path_mtl = "F:/LabCompiler2026_I_CG/glfw-master/OwnProjects/F1-Mclaren-Camaras/models/" + mtlib;
+			std::string path_mtl = "../OwnProjects/F1-Mclaren-Camaras/models/" + mtlib;
             
             mtl_cargados = parser.ParseMTL(path_mtl);
 		}
@@ -106,7 +106,7 @@ void Car::Generate(){
 				auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,normales,check_repeat,new_mesh->faces,base);
 				ShapeNode* node=nullptr;
 
-				std::string path="F:/LabCompiler2026_I_CG/glfw-master/OwnProjects/F1-Mclaren-Camaras/textures/";
+				std::string path="../OwnProjects/F1-Mclaren-Camaras/textures/";
 				if(new_mesh->name=="Timon"){
 					node=new Timon(world,new_mesh->name,new_mesh->mtl);
 					path+=new_mesh->mtl;
@@ -179,7 +179,7 @@ void Car::Generate(){
 		auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,normales,check_repeat,new_mesh->faces,base);
 		ShapeNode* node=nullptr;
 
-		std::string path="E:/LabCompiler2026_I_CG/glfw-master/OwnProjects/F1-Mclaren-Camaras/textures/";
+		std::string path="../OwnProjects/F1-Mclaren-Camaras/textures/";
 		if(new_mesh->name=="Timon"){
 			node=new Timon(world,new_mesh->name,new_mesh->mtl);
 			path+=new_mesh->mtl;
