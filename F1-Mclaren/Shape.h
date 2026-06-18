@@ -47,25 +47,14 @@ public:
 };
 // -------------- FIN PARSER Y MESH LOGIC -------------
 
-struct Material {
-    std::string name;
-    float Ka[3] = {0.2f, 0.2f, 0.2f}; // Color Ambiente por defecto
-    float Kd[3] = {0.8f, 0.8f, 0.8f}; // Color Difuso por defecto
-    float Ks[3] = {1.0f, 1.0f, 1.0f}; // Color Especular por defecto
-    float Ns = 32.0f;                 // Brillo por defecto
-};
-
 
 class Parser{
 public:
 	std::string Optimize_Parser(const std::string &line);
 	FaceVertex Optimize_Parser_Face(const std::string &line);
 	Point Optimize_Parser_Numeric(const std::string &line,const int offset);
-	std::vector<unsigned int> Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::vector<float> &Normals, std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int& base);	
-	std::unordered_map<std::string, Material> ParseMTL(const std::string& path);
+	std::vector<unsigned int> Update_EBos_Vertex(std::vector<float>& send,std::vector<float> &vertices,std::vector<float> &UVs,std::unordered_map<FaceVertex::FaceIndex,unsigned int,FaceIndexHash>& check_repeat,const std::vector<FaceVertex>& faces,unsigned int& base);	
 };
-
-
 
 class World{
 public:
@@ -75,12 +64,10 @@ public:
 	Shaders Shader_global;
 	ShapeNode* root,*activeSceneNode;
 	int globalColorCounter;
-	
-	Point lightPos;
 public:
 	World();
 	~World();
-	void DrawShape(const Matrix& view,const Matrix& projection, const Point& camPos);
+	void DrawShape(const Matrix& view,const Matrix& projection);
 	std::vector<unsigned int> Add_Batch(std::vector<float>& vectors,std::vector<unsigned int>& indices,unsigned int &offset);
 	void print(ShapeNode* rot,int offset=0);
 };
@@ -92,7 +79,6 @@ public:
 	std::vector<unsigned int> EBOs_range;
 	Shaders Shader;
 	std::vector<ShapeNode*> children;
-	Material material;
 	unsigned int primitive,offset;
 	RGB color;
 	ShapeNode* parent;
@@ -101,15 +87,13 @@ public:
 	std::string name;
 	bool IsDrawable;
 	int selected_part;
-	Matrix worldMatrix;
-	bool dirty = true;
 public:
 	ShapeNode(World* world,unsigned int prim,const std::string &nam);
 	virtual ~ShapeNode();
 	void AddChildren(ShapeNode* son);
 	void ModifiedShaderTransform(const char &tpe,const float &first_val,float second_val,char axis);
 	void ModifiedShaderColor(const float &r,const float &g,const float &b);
-	void DrawShape(const Matrix& parent, const Matrix& view, const Matrix& projection, const Point& camPos);
+	void DrawShape(const Matrix& parent,const Matrix& view,const Matrix& projection);
 	void SelectNextChild();
 	Matrix GetWorldMatrix();
 	Point GetWorldPosition();
@@ -135,8 +119,6 @@ public:
 	void Generate() override;
 	void DrawGeometry(const Matrix& parent) override;
 };
-
-
 
 // PIZZA
 

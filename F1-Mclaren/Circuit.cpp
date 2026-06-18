@@ -15,9 +15,8 @@ void Parts_Circuit::DrawGeometry(const Matrix& parent){
     Shader.use();
     Shader.SetMatrix(parent);
 	Shader.SetUseTexture(false);
-	Shader.SetColor(color.r,color.g,color.b);	
+    Shader.SetColor(color.r,color.g,color.b);
 
-	Shader.SetMaterial(material.Ka, material.Kd, material.Ks, material.Ns);
 	glDrawElements(GL_TRIANGLES, EBOs_range.size(), GL_UNSIGNED_INT, (void*)(offset * sizeof(unsigned int)));
 }
 
@@ -49,7 +48,7 @@ void Circuit::Generate(){
 	indices.reserve(MAX_SIZE);
 	faces.reserve(MAX_SIZE);
 
-    unsigned int base=world->all_vertices.size()/8;
+    unsigned int base=world->all_vertices.size()/5;
 	
 	std::string line;
 	Mesh *new_mesh=nullptr;
@@ -64,7 +63,7 @@ void Circuit::Generate(){
 		else if(inicio=='o'){
 			if(new_mesh){
 				unsigned int start = indices.size();
-				auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,normales,check_repeat,new_mesh->faces,base);
+				auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces,base);
 				ShapeNode* node=nullptr;
 
 				if(new_mesh->name=="Barrier_red"){
@@ -119,7 +118,7 @@ void Circuit::Generate(){
 	
 	if(new_mesh){
 		unsigned int start = indices.size();
-		auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,normales,check_repeat,new_mesh->faces,base);
+		auto tmp = parser.Update_EBos_Vertex(send,vertices,UVs,check_repeat,new_mesh->faces,base);
 		ShapeNode* node=nullptr;
 
 		if(new_mesh->name=="Barrier_red"){
