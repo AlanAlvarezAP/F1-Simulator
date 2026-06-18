@@ -20,7 +20,6 @@
 
 #include <iostream>
 #include <string>
-
 #include <queue>
 
 #include "Shape.h"
@@ -28,7 +27,6 @@
 
 World* mundito=nullptr;
 GLuint VAO,VBO,EBO;
-unsigned int NUM_REBANADAS=4,SELECT_REBANDA=0;
 char CURRENT_AXIS = 'z';
 Cube* cube=nullptr;
 Camera* cam=nullptr;
@@ -42,9 +40,12 @@ float dt=0.0f,lastX=0.0f,lastY=0.0f;
 Camera_Status camMode = TARGETING;
 int currentSceneIndex = 5;
 
+bool modoCochesDivididos = false;
+bool modoPiloto = false; 
+
 std::vector<Point> routePoints;
 
-//------------- ANIMATION ---------------//
+// car mov script
 void loadCarIntructions(Car* carro) {
     while(!carro->animScript.empty())
 		carro->animScript.pop();
@@ -90,15 +91,43 @@ void loadCarIntructions(Car* carro) {
     carro->addScriptStep(false, true, 1.0f, 0.0f, 0.0f);
 }
 
+class CamDirectorStep {
+public:
+    int mode;
+    float duration;
+    bool triggerAnim;
+};
+
+// cam script
+std::queue<CamDirectorStep> directorScript;
+float directorTimer = 0.0f;
+bool isDirectorPlaying = false;
+int currentCameraMode = 0;
+
+void loadDirectorInstructions() {
+    while(!directorScript.empty())
+		directorScript.pop();
+    directorTimer = 0.0f;
+    isDirectorPlaying = true;
+
+    directorScript.push({0, 5.0f, false}); 
+    directorScript.push({1, 7.0f, false}); 
+    directorScript.push({2, 10.0f, false}); 
+	directorScript.push({3, 2.0f, false});
+    directorScript.push({4, 2.0f, false});
+    directorScript.push({5, 2.0f, false});
+    directorScript.push({2, 7.5f, false}); 
+    directorScript.push({0, 8.0f, false}); 
+}
+
 class ColorRGB {
 public:
     float r, g, b;
 };
 
-// Función para mezclar dos colores (Interpolación Lineal)
-// 't' debe ser un valor entre 0.0 y 1.0
+// t between 0.0 - 1.0
 ColorRGB MezclarColor(ColorRGB color1, ColorRGB color2, float t) {
-    // Aseguramos que 't' no se salga de los límites
+	// t no out limits
     if (t < 0.0f) t = 0.0f;
     if (t > 1.0f) t = 1.0f;
 
@@ -122,6 +151,12 @@ void alinear(){
 	},'N');
 }
 
+void alinearCarro() {
+	Animation_Step* movCarX= new Animation_Step(carro,0.001f,'a',-3.0f,'x','W');
+	Animation_Step* movCarY= new Animation_Step(carro,0.001f,'a',-1.0f,'y','W');
+	anim->Add_Animations(std::vector<Animation_Step*>{movCarX,movCarY},'N');
+}
+
 void tests_anim(){
 	// CUIDADO CON DOBLE RELEASE
 	// TEST CAMARA
@@ -143,7 +178,6 @@ void tests_anim(){
 void orbit(){
 	// rotar la cámara 90 grados en yaw en 4 segundos
 	Animation_Step* rotateCam = new Animation_Step(cube, 4.0f, 'd', 360.0f, 'y', 'W');
-
 	anim->Add_Animations(std::vector<Animation_Step*>{rotateCam}, 'N');
 }
 
@@ -237,9 +271,15 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 		    std::cout << "Saved Point: (" << pos.x << ", " << pos.y << ", " << pos.z << " )\n";
 			break;
 		}
+		case GLFW_KEY_R:{
+			alinearCarro();
+			break;
+		}
 		case GLFW_KEY_1:{
-			if (!carro->isScriptPlaying)
+			if (!carro->isScriptPlaying) {
                 loadCarIntructions(carro);
+				loadDirectorInstructions();
+			}
             break;
         }
 		case GLFW_KEY_X:{
@@ -278,6 +318,20 @@ void key_callback(GLFWwindow* window,int key,int scan,int action,int mods){
 			mundito->activeSceneNode=mundito->root->children[currentSceneIndex];
 			std::cout << "Escena actual: "<< mundito->activeSceneNode->name << " con index " << currentSceneIndex << std::endl;
 			break;
+		}
+		case GLFW_KEY_U: {
+		    modoPiloto = !modoPiloto;
+		    if (modoPiloto)
+				modoCochesDivididos = false;
+		    std::cout << "Modo Piloto: " << (modoPiloto ? "ACTIVADO" : "DESACTIVADO") << std::endl;
+		    break;
+		}
+		case GLFW_KEY_O: {
+		    modoCochesDivididos = !modoCochesDivididos;
+		    if (modoCochesDivididos)
+				modoPiloto = false;
+		    std::cout << "Modo Camaras Divididas: " << (modoCochesDivididos ? "ACTIVADO" : "DESACTIVADO") << std::endl;
+		    break;
 		}
 		case GLFW_KEY_E:{
             mundito->activeSceneNode->SelectNextChild();
@@ -359,8 +413,8 @@ int main(){
 	double fpsTime = 0.0;
 	int fpsFrames = 0;
 	
-	float dist = 3.0f; // 0.8
-	float altura = 5.0f; // 0.35
+	float dist = 1.75f; // 0.8 - 3.0
+	float altura = 2.75f; // 0.35 - 5.0
 	
 	// ORBITA DE LA LUZ
 	float anguloLuz = atan2(-7.0f, -8.0f); 
@@ -369,6 +423,10 @@ int main(){
 	// VELOCIDAD
 	float velocidadOrbita = 1.0f;
 	bool fondo = true;
+
+	// first person
+	float altPiloto = 0.5f;
+	float distPiloto = -0.15f;
 
 	while(!glfwWindowShouldClose(window)){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -406,6 +464,31 @@ int main(){
             carro->updateScriptAnimation(dt, inputForward, inputBrake);
             inputBackward = false;
         }
+		if (isDirectorPlaying && !directorScript.empty()) {
+		    CamDirectorStep currentCamStep = directorScript.front();
+		    currentCameraMode = currentCamStep.mode;
+		    if (currentCamStep.triggerAnim && directorTimer == 0.0f) {
+				Point carPos = carro->GetWorldPosition();
+        		cam->Position.x = carPos.x + 20.0f;
+        		cam->Position.y = carPos.y + 10.0f;
+        		cam->Position.z = carPos.z + 10.0f;
+        
+        		cam->UpdateCam(TARGETING, carPos); 
+
+        		Animation_Step* movCamX = new Animation_Step(cam, currentCamStep.duration, 'a', -40.0f, 'x', 'W');
+        
+        		anim->Add_Animations(std::vector<Animation_Step*>{movCamX}, 'N');
+		    }
+		    directorTimer += dt;
+		    if (directorTimer >= currentCamStep.duration) {
+		        directorTimer = 0.0f;
+		        directorScript.pop();
+		        if (directorScript.empty()) {
+		            isDirectorPlaying = false;
+		            currentCameraMode = 0;
+		        }
+		    }
+		}
 		carro->updatePhysics(dt, inputForward, inputBackward, inputBrake, inputLeft, inputRight);
 		carro2->updatePhysics(dt, inputForward2, inputBackward2, inputBrake2, inputLeft2, inputRight2);
 		
@@ -436,7 +519,7 @@ int main(){
 		ColorRGB colorNoche = {0.04f, 0.06f, 0.13f};
 		ColorRGB colorDia   = {0.53f, 0.81f, 0.92f};
 
-		float tuValorIluminacion = yyy; // Info de la altura de la luz
+		float tuValorIluminacion = yyy; // light hight
 
 		float t = tuValorIluminacion / 100.0f; 
 
@@ -444,67 +527,205 @@ int main(){
 
 		glClearColor(colorFondo.r, colorFondo.g, colorFondo.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		
-		Point target = mundito->activeSceneNode->GetWorldPosition();
 
-		int windowWidth = 1200;
-		int windowHeight = 800;
+		int windowWidth, windowHeight;
+		glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
 		int halfW = windowWidth / 2;
 		int halfH = windowHeight / 2;
 
-		// CAMARA FRONTAL
-		Point posFront = {target.x, target.y + altura, target.z + dist}; 
-		Camera camFront(posFront, target, {0,1,0}, TARGETING);
-		glViewport(0, halfH, halfW, halfH);
-		mundito->DrawShape(
-			camFront.GetLookAt(),
-			camFront.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
-			posFront 
-		);
+		float aspect = (float)halfW / (float)halfH;
 
-		// CAMARA TRASERA
-		Point posBack = {target.x, target.y + altura, target.z - dist};
-		Camera camBack(posBack, target, {0,1,0}, TARGETING);
-		glViewport(halfW, halfH, halfW, halfH);
-		mundito->DrawShape(
-			camBack.GetLookAt(),
-			camBack.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
-			posBack 
-		);
+		if (!modoCochesDivididos && !modoPiloto) {
+		    // normal mode
+		    Point target = mundito->activeSceneNode->GetWorldPosition();
 
-		// CAMARA IZQUIERDA
-		Point posLeft = {target.x - dist, target.y + altura, target.z};
-		Camera camLeft(posLeft, target, {0,1,0}, TARGETING);
-		glViewport(0, 0, halfW, halfH);
-		mundito->DrawShape(
-			camLeft.GetLookAt(),
-			camLeft.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
-			posLeft 
-		);	
+			if (isDirectorPlaying) {
+				float dirZ_X = carro->Mat.matrix[8];
+				float dirZ_Z = carro->Mat.matrix[10];
 
-		// CAMARA DERECHA
-		Point posRight = {target.x + dist, target.y + altura, target.z};
-		Camera camRight(posRight, target, {0,1,0}, TARGETING);
-		glViewport(halfW, 0, halfW, halfH);
-		mundito->DrawShape(
-			camRight.GetLookAt(),
-			camRight.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f),
-			posRight 
-		);
+				switch (currentCameraMode) {
+				    case 0: {
+						Point posFront = {target.x, target.y + altura, target.z + dist}; 
+		    			Camera camFront(posFront, target, {0,1,0}, TARGETING);
+		    			glViewport(0, halfH, halfW, halfH);
+		    			mundito->DrawShape(camFront.GetLookAt(), camFront.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posFront);
+		
+		    			Point posBack = {target.x, target.y + altura, target.z - dist};
+		    			Camera camBack(posBack, target, {0,1,0}, TARGETING);
+		    			glViewport(halfW, halfH, halfW, halfH);
+		    			mundito->DrawShape(camBack.GetLookAt(), camBack.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack);
+		
+		    			Point posLeft = {target.x - dist, target.y + altura, target.z};
+		    			Camera camLeft(posLeft, target, {0,1,0}, TARGETING);
+		    			glViewport(0, 0, halfW, halfH);
+		    			mundito->DrawShape(camLeft.GetLookAt(), camLeft.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posLeft);	
+		
+		    			Point posRight = {target.x + dist, target.y + altura, target.z};
+		    			Camera camRight(posRight, target, {0,1,0}, TARGETING);
+		    			glViewport(halfW, 0, halfW, halfH);
+		    			mundito->DrawShape(camRight.GetLookAt(), camRight.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posRight);
+				        break;
+				    }
+				    case 1: {
+				        Point posFront = {target.x + (dirZ_X * dist), target.y + altura, target.z + (dirZ_Z * dist)}; 
+				        Camera camFront(posFront, target, {0,1,0}, TARGETING);
+				        glViewport(halfW, 0, halfW, halfH);
+				        mundito->DrawShape(camFront.GetLookAt(), camFront.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posFront);
+
+		    			Point posBack = {target.x, target.y + altura, target.z - dist};
+		    			Camera camBack(posBack, target, {0,1,0}, TARGETING);
+		    			glViewport(0, 0, halfW, halfH);
+		    			mundito->DrawShape(camBack.GetLookAt(), camBack.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack);
+		
+		    			Point posLeft = {target.x - dist, target.y + altura, target.z};
+		    			Camera camLeft(posLeft, target, {0,1,0}, TARGETING);
+		    			glViewport(0, halfH, halfW, halfH);
+		    			mundito->DrawShape(camLeft.GetLookAt(), camLeft.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posLeft);	
+		
+		    			Point posRight = {target.x + dist, target.y + altura, target.z};
+		    			Camera camRight(posRight, target, {0,1,0}, TARGETING);
+		    			glViewport(halfW, halfH, halfW, halfH);
+		    			mundito->DrawShape(camRight.GetLookAt(), camRight.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posRight);
+				        break;
+				    }
+				    case 2: {
+				        Point posPiloto = {target.x + (dirZ_X * distPiloto), target.y + altPiloto, target.z + (dirZ_Z * distPiloto)};
+				        Point viewTarget = {posPiloto.x + (dirZ_X * 10.0f), posPiloto.y, posPiloto.z + (dirZ_Z * 10.0f)}; 
+				        Camera camPiloto(posPiloto, viewTarget, {0,1,0}, TARGETING);
+				        glViewport(0, 0, windowWidth, windowHeight); 
+				        mundito->DrawShape(camPiloto.GetLookAt(), camPiloto.GetProjection((float)windowWidth, (float)windowHeight, 0.1f, 100.0f), posPiloto);
+				        break;
+				    }
+					case 3: {
+    				    Point carPos = carro->GetWorldPosition();
+    				    Point posToma1 = {carPos.x + 20.0f, carPos.y + 10.0f, carPos.z};
+    				    Camera camToma1(posToma1, carPos, {0,1,0}, TARGETING);
+    				    glViewport(0, 0, windowWidth, windowHeight);
+    				    mundito->DrawShape(camToma1.GetLookAt(), camToma1.GetProjection((float)windowWidth, (float)windowHeight, 0.1f, 100.0f), posToma1);
+    				    break;
+    				}
+    				case 4: {
+    				    Point carPos = carro->GetWorldPosition();
+    				    Point posToma2 = {carPos.x + 1.0f, carPos.y + 30.0f, carPos.z}; 
+    				    Camera camToma2(posToma2, carPos, {0,1,0}, TARGETING);
+    				    glViewport(0, 0, windowWidth, windowHeight);
+    				    mundito->DrawShape(camToma2.GetLookAt(), camToma2.GetProjection((float)windowWidth, (float)windowHeight, 0.1f, 100.0f), posToma2);
+    				    break;
+    				}
+    				case 5: {
+    				    Point carPos = carro->GetWorldPosition();
+    				    float dirZ_X = carro->Mat.matrix[8];
+    				    float dirZ_Z = carro->Mat.matrix[10];
+					
+    				    Point posToma3 = {carPos.x + (dirZ_X * 20.0f), carPos.y + 2.0f, carPos.z + (dirZ_Z * 20.0f)};
+    				    Camera camToma3(posToma3, carPos, {0,1,0}, TARGETING);
+    				    glViewport(0, 0, windowWidth, windowHeight);
+    				    mundito->DrawShape(camToma3.GetLookAt(), camToma3.GetProjection((float)windowWidth, (float)windowHeight, 0.1f, 100.0f), posToma3);
+    				    break;
+    				}
+				}
+			} else {
+		    	Point posFront = {target.x, target.y + altura, target.z + dist}; 
+		    	Camera camFront(posFront, target, {0,1,0}, TARGETING);
+		    	glViewport(0, halfH, halfW, halfH);
+		    	mundito->DrawShape(camFront.GetLookAt(), camFront.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posFront);
+		
+		    	Point posBack = {target.x, target.y + altura, target.z - dist};
+		    	Camera camBack(posBack, target, {0,1,0}, TARGETING);
+		    	glViewport(halfW, halfH, halfW, halfH);
+		    	mundito->DrawShape(camBack.GetLookAt(), camBack.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack);
+		
+		    	Point posLeft = {target.x - dist, target.y + altura, target.z};
+		    	Camera camLeft(posLeft, target, {0,1,0}, TARGETING);
+		    	glViewport(0, 0, halfW, halfH);
+		    	mundito->DrawShape(camLeft.GetLookAt(), camLeft.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posLeft);	
+		
+		    	Point posRight = {target.x + dist, target.y + altura, target.z};
+		    	Camera camRight(posRight, target, {0,1,0}, TARGETING);
+		    	glViewport(halfW, 0, halfW, halfH);
+		    	mundito->DrawShape(camRight.GetLookAt(), camRight.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posRight);
+			}
+		} else if (modoCochesDivididos) {
+		    Point target1 = carro->GetWorldPosition();
+		    Point target2 = carro2->GetWorldPosition();
+
+			// car 1
+		    float dirZ_X1 = carro->Mat.matrix[8];
+		    float dirZ_Z1 = carro->Mat.matrix[10];
+
+		    Point posFront1 = {target1.x + (dirZ_X1 * dist), target1.y + altura, target1.z + (dirZ_Z1 * dist)}; 
+		    Camera camFront1(posFront1, target1, {0,1,0}, TARGETING);
+		    glViewport(0, halfH, halfW, halfH);
+		    mundito->DrawShape(camFront1.GetLookAt(), camFront1.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posFront1);
+
+		    Point posBack1 = {target1.x - (dirZ_X1 * dist), target1.y + altura, target1.z - (dirZ_Z1 * dist)};
+		    Camera camBack1(posBack1, target1, {0,1,0}, TARGETING);
+		    glViewport(0, 0, halfW, halfH);
+		    mundito->DrawShape(camBack1.GetLookAt(), camBack1.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack1);
+
+			// car 2
+		    float dirZ_X2 = carro2->Mat.matrix[8];
+		    float dirZ_Z2 = carro2->Mat.matrix[10];
+
+		    Point posFront2 = {target2.x + (dirZ_X2 * dist), target2.y + altura, target2.z + (dirZ_Z2 * dist)}; 
+		    Camera camFront2(posFront2, target2, {0,1,0}, TARGETING);
+		    glViewport(halfW, halfH, halfW, halfH);
+		    mundito->DrawShape(camFront2.GetLookAt(), camFront2.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posFront2);
+
+		    Point posBack2 = {target2.x - (dirZ_X2 * dist), target2.y + altura, target2.z - (dirZ_Z2 * dist)};
+		    Camera camBack2(posBack2, target2, {0,1,0}, TARGETING);
+		    glViewport(halfW, 0, halfW, halfH);
+		    mundito->DrawShape(camBack2.GetLookAt(), camBack2.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack2);
+		} else if (modoPiloto) {
+		    Point target1 = carro->GetWorldPosition();
+		    Point target2 = carro2->GetWorldPosition();
+		
+			// car 1
+		    float dirZ_X1 = carro->Mat.matrix[8];
+		    float dirZ_Z1 = carro->Mat.matrix[10];
+		
+		    Point posPiloto1 = {target1.x + (dirZ_X1 * distPiloto), target1.y + altPiloto, target1.z + (dirZ_Z1 * distPiloto)};
+		    Point viewTarget1 = {posPiloto1.x + (dirZ_X1 * 10.0f), posPiloto1.y, posPiloto1.z + (dirZ_Z1 * 10.0f)}; 
+		    Camera camPiloto1(posPiloto1, viewTarget1, {0,1,0}, TARGETING);
+		    glViewport(0, halfH, halfW, halfH);
+		    mundito->DrawShape(camPiloto1.GetLookAt(), camPiloto1.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posPiloto1);
+		
+		    Point posBack1 = {target1.x - (dirZ_X1 * dist), target1.y + altura, target1.z - (dirZ_Z1 * dist)};
+		    Camera camBack1(posBack1, target1, {0,1,0}, TARGETING);
+		    glViewport(0, 0, halfW, halfH);
+		    mundito->DrawShape(camBack1.GetLookAt(), camBack1.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack1);
+		
+			// car 2
+		    float dirZ_X2 = carro2->Mat.matrix[8];
+		    float dirZ_Z2 = carro2->Mat.matrix[10];
+		
+		    Point posPiloto2 = {target2.x + (dirZ_X2 * distPiloto), target2.y + altPiloto, target2.z + (dirZ_Z2 * distPiloto)};
+		    Point viewTarget2 = {posPiloto2.x + (dirZ_X2 * 10.0f), posPiloto2.y, posPiloto2.z + (dirZ_Z2 * 10.0f)}; 
+		    Camera camPiloto2(posPiloto2, viewTarget2, {0,1,0}, TARGETING);
+		    glViewport(halfW, halfH, halfW, halfH);
+		    mundito->DrawShape(camPiloto2.GetLookAt(), camPiloto2.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posPiloto2);
+		
+		    Point posBack2 = {target2.x - (dirZ_X2 * dist), target2.y + altura, target2.z - (dirZ_Z2 * dist)};
+		    Camera camBack2(posBack2, target2, {0,1,0}, TARGETING);
+		    glViewport(halfW, 0, halfW, halfH);
+		    mundito->DrawShape(camBack2.GetLookAt(), camBack2.GetProjection((float)halfW, (float)halfH, 0.1f, 100.0f), posBack2);
+		}
+
 		glViewport(0, 0, windowWidth, windowHeight);
 
-		glEnable(GL_SCISSOR_TEST);
+		if (currentCameraMode == 0 || currentCameraMode == 1) {
+			glEnable(GL_SCISSOR_TEST);
+			// línea vertical
+			glScissor(halfW - 1, 0, 2, windowHeight);
+			glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
 
-		// línea vertical
-		glScissor(halfW - 1, 0, 2, windowHeight);
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// línea horizontal
-		glScissor(0, halfH - 1, windowWidth, 2);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glDisable(GL_SCISSOR_TEST);
+			// línea horizontal
+			glScissor(0, halfH - 1, windowWidth, 2);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glDisable(GL_SCISSOR_TEST);
+		}
 		
 		glBindVertexArray(0);
         glfwSwapBuffers(window);

@@ -468,21 +468,27 @@ void Car::handleKey(int key, int mods,char CURRENT_AXIS){
 
 void Car::printMenu(){
 	std::cout << "===================================" << std::endl;
-    std::cout << "|        Bienvenido a             |" << std::endl;
-    std::cout << "|     Simulador de F1             |" << std::endl;
+    std::cout << "|          Bienvenido a           |" << std::endl;
+    std::cout << "|        Simulador de F1          |" << std::endl;
+    std::cout << "|  1. Iniciar animacion           |" << std::endl;
+    std::cout << "|  P. Seleccion de objeto         |" << std::endl;
+    std::cout << "|  O. Camara multijugador 1       |" << std::endl;
+    std::cout << "|  U. Camara multijugador 2       |" << std::endl;
     std::cout << "|                                 |" << std::endl;
-    std::cout << "|  R. Seleccion parte (0-N)       |" << std::endl;
-	std::cout << "|  d. Rotar (0.1)                 |" << std::endl;
-	std::cout << "|  f. Rotar inverso (0.1)         |" << std::endl;
-	std::cout << "|  g. Escalar (1.1)               |" << std::endl;
-	std::cout << "|  h. Escalar inverso (0.9)       |" << std::endl;
-	std::cout << "|  x. Usar eje x                  |" << std::endl;
-	std::cout << "|  y. Usar eje y                  |" << std::endl;
-	std::cout << "|  z. Usar eje z                  |" << std::endl;
-    std::cout << "|  4. Mover arriba (Flecha arr)   |" << std::endl;
-    std::cout << "|  5. Mover abajo (Flecha abj)    |" << std::endl;
-    std::cout << "|  6. Mover derecha (Flecha der)  |" << std::endl;
-	std::cout << "|  7. Mover izquierda (Flecha izq)|" << std::endl;
+    std::cout << "|  Controles Jugador 1            |" << std::endl;
+    std::cout << "|  8. Avanzar                     |" << std::endl;
+    std::cout << "|  2. Retroceder                  |" << std::endl;
+    std::cout << "|  4. Girar Izquierda             |" << std::endl;
+    std::cout << "|  6. Girar Derecha               |" << std::endl;
+    std::cout << "|  5. Frenos                      |" << std::endl;
+    std::cout << "|                                 |" << std::endl;
+    std::cout << "|  Controles Jugador 2            |" << std::endl;
+    std::cout << "|  I. Avanzar                     |" << std::endl;
+    std::cout << "|  K. Retroceder                  |" << std::endl;
+    std::cout << "|  J. Girar Izquierda             |" << std::endl;
+    std::cout << "|  L. Girar Derecha               |" << std::endl;
+    std::cout << "|  SPACE. Frenos                  |" << std::endl;
+    std::cout << "|                                 |" << std::endl;
     std::cout << "|  8. Salir (ESC o CTRL+C)        |" << std::endl;
     std::cout << "===================================" << std::endl;
 }
