@@ -18,4 +18,7 @@ public:
 	void SetProjection(const Matrix& mat);
 	void SetTexture();
 	void SetUseTexture(bool value);
+	void SetMaterial(const float* Ka, const float* Kd, const float* Ks, float Ns);
+    void SetLight(const float* lightPos, const float* lightColor, const float* viewPos);
+	void SetIsLightCube(bool value);
 };
