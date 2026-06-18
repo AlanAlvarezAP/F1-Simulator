@@ -43,6 +43,24 @@ Camera_Status camMode = TARGETING;
 int currentSceneIndex = 5;
 
 
+struct ColorRGB {
+    float r, g, b;
+};
+
+// Función para mezclar dos colores (Interpolación Lineal)
+// 't' debe ser un valor entre 0.0 y 1.0
+ColorRGB MezclarColor(ColorRGB color1, ColorRGB color2, float t) {
+    // Aseguramos que 't' no se salga de los límites
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+
+    ColorRGB resultado;
+    resultado.r = color1.r + (color2.r - color1.r) * t;
+    resultado.g = color1.g + (color2.g - color1.g) * t;
+    resultado.b = color1.b + (color2.b - color1.b) * t;
+    
+    return resultado;
+}
 //------------- SECCION DE TESTS ---------------//
 void alinear(){
 	Animation_Step* movCarX= new Animation_Step(carro,0.001f,'a',-3.0f,'x','W');
@@ -292,7 +310,7 @@ int main(){
 	cam = Builder::BuildCamera();
 	anim = Builder::BuildAnimator();
 	
-	cube = Builder::BuildCubeScene(mundito,{-8.0f,-30.0f,7.0f});
+	cube = Builder::BuildCubeScene(mundito,{-8.0f,-100.0f,7.0f});
 	//sphere=Builder::BuildSphereScene(mundito,0.5f);
 	carro=Builder::BuildCarScene(mundito);
 	circuit=Builder::BuildCircuitScene(mundito);
@@ -324,10 +342,11 @@ int main(){
 
 	// VELOCIDAD
 	float velocidadOrbita = 1.0f;
-	
+	bool fondo = true;
 
 	while(!glfwWindowShouldClose(window)){
-		glClearColor(0.01f, 0.5f, 1.0f, 1.0f);
+		
+		
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		float NowTime=glfwGetTime();
@@ -361,12 +380,29 @@ int main(){
 		Point cubePos = cube->GetWorldPosition();
 		anguloLuz -= velocidadOrbita * dt * 0.4;
 		
+		float yyy = radioLuz * sin(anguloLuz);
+		
+		if(yyy < 0)fondo = false;
+		else fondo = true;
+		
 		mundito->lightPos.x = 7.0f;
 		mundito->lightPos.y = radioLuz * sin(anguloLuz);
 		mundito->lightPos.z = radioLuz * cos(anguloLuz);
 		
 		orbit();
 		
+		
+		ColorRGB colorNoche = {0.04f, 0.06f, 0.13f};
+		ColorRGB colorDia   = {0.53f, 0.81f, 0.92f};
+
+		float tuValorIluminacion = yyy; // Info de la altura de la luz
+
+		float t = tuValorIluminacion / 100.0f; 
+
+		ColorRGB colorFondo = MezclarColor(colorNoche, colorDia, t);
+
+		glClearColor(colorFondo.r, colorFondo.g, colorFondo.b, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 		
 		Point target = mundito->activeSceneNode->GetWorldPosition();
 
